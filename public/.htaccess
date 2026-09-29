@@ -1,0 +1,22 @@
+# public/.htaccess — SIGEHO-CONT (MVC)
+#
+# Reescribe las URLs amigables al front controller:
+#   /horarios/nuevo  ->  index.php?r=horarios/nuevo
+# Los archivos y carpetas reales (assets, etc.) se sirven directamente.
+# El Router también acepta ?r=controlador/accion si mod_rewrite no está disponible.
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # No reescribir si el recurso existe físicamente
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+
+    # Enviar la ruta al front controller como parámetro "r"
+    RewriteRule ^(.*)$ index.php?r=$1 [QSA,L]
+</IfModule>
+
+# Proteger archivos sensibles en caso de mala configuración del document root
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
