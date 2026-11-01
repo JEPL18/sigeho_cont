@@ -1,10 +1,4 @@
 <?php
-// app/core/Controller.php — Controlador base.
-//
-// Provee renderizado de vistas (con o sin layout), redirecciones y
-// los candados de autenticación/rol que el proyecto original repetía
-// en cada archivo.
-
 class Controller {
     protected $conn;
 
@@ -12,10 +6,7 @@ class Controller {
         $this->conn = $conn;
     }
 
-    /**
-     * Renderiza una vista dentro del layout (header + footer).
-     * Las variables de $data quedan disponibles en la vista.
-     */
+    
     protected function render($view, $data = []) {
         $conn    = $this->conn;
         $baseUrl = BASE_URL;
@@ -33,10 +24,7 @@ class Controller {
         require APP_PATH . '/views/layouts/footer.php';
     }
 
-    /**
-     * Renderiza una página HTML completa sin layout
-     * (login, verificación 2FA, recuperación de clave).
-     */
+    
     protected function renderPage($view, $data = []) {
         $conn    = $this->conn;
         $baseUrl = BASE_URL;
@@ -51,10 +39,7 @@ class Controller {
         require $vista;
     }
 
-    /**
-     * Genera la URL de una ruta interna.
-     * Ej: $this->url('horarios/nuevo')  |  $this->url('horarios/editar', ['id' => 5])
-     */
+    
     protected function url($ruta, $params = []) {
         $url = BASE_URL . ltrim($ruta, '/');
         if (!empty($params)) {
@@ -63,10 +48,7 @@ class Controller {
         return $url;
     }
 
-    /**
-     * Genera la URL de un recurso estático bajo public/.
-     * Ej: $this->asset('assets/img/logo_conta.jpeg')
-     */
+    
     protected function asset($ruta) {
         return BASE_URL . ltrim($ruta, '/');
     }
@@ -76,22 +58,29 @@ class Controller {
         exit();
     }
 
-    /** Candado: requiere sesión iniciada. */
     protected function requireLogin() {
         if (!isset($_SESSION['usuario_id'])) {
             $this->redirect('auth/login');
         }
     }
 
-    /**
-     * Candado: requiere sesión iniciada + rol administrador.
-     * $fallback es la ruta de destino si no cumple (el proyecto original
-     * redirigía al index del módulo, excepto usuarios y configuración
-     * que redirigían al dashboard).
-     */
+    
     protected function requireAdmin($fallback = 'dashboard') {
-        if (!isset($_SESSION['usuario_id']) || strtolower($_SESSION['rol']) != 'administrador') {
-            $this->redirect($fallback);
+        if (!isset($_SESSION['usuario_id'])) {
+            $this->redirect('auth/login');
+        }
+        if (strtolower($_SESSION['rol']) != 'administrador') {
+            http_response_code(403);
+            $this->render('errores/403');
+            exit;
+        }
+    }
+
+    protected function bitacora($accion) {
+        try {
+            $bitacora = new Bitacora($this->conn);
+            $bitacora->registrar($_SESSION['usuario_id'], $accion);
+        } catch (Exception $e) {
         }
     }
 }

@@ -1,9 +1,11 @@
 <?php
-// app/views/profesores/form.php — Formulario compartido nuevo/editar.
-// Migrado de modules/profesores/nuevo.php y editar.php.
-// $modo: 'nuevo' | 'editar'. $datos: fila del profesor (modo editar).
 $es_nuevo = ($modo === 'nuevo');
 $form_action = $es_nuevo ? $this->url('profesores/nuevo') : $this->url('profesores/editar', ['id' => $id]);
+$materias = isset($materias) ? $materias : [];
+$disp_seleccionada = isset($disp_seleccionada) ? $disp_seleccionada : [];
+$mat_seleccionadas = isset($mat_seleccionadas) ? $mat_seleccionadas : [];
+$dias = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado'];
+$turnos = ['MATUTINO' => 'Matutino', 'VESPERTINO' => 'Vespertino', 'NOCTURNO' => 'Nocturno'];
 ?>
 <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
     <h2 class="fw-bold mb-0 text-dark">
@@ -24,54 +26,79 @@ $form_action = $es_nuevo ? $this->url('profesores/nuevo') : $this->url('profesor
                 <?php if($success): ?><div class="alert alert-success" role="alert"><?php echo $success; ?></div><?php endif; ?>
 
                 <form action="<?= $form_action; ?>" method="POST">
+    <?= csrf_field() ?>
                     <div class="mb-3">
                         <label class="form-label fw-bold">Cédula de Identidad</label>
                         <input type="text" name="cedula" class="form-control solo-numeros"
                                value="<?= $es_nuevo ? '' : htmlspecialchars($datos['cedula']); ?>"
                                placeholder="<?= $es_nuevo ? 'Ej: 12345678' : ''; ?>"
-                               pattern="[0-9]{7,8}" title="Debe contener 7 u 8 números. Sin puntos ni letras." maxlength="8"
+                               pattern="[0-9]{7,8}" data-bs-toggle="tooltip" data-bs-placement="top" title="Debe contener 7 u 8 números. Sin puntos ni letras." maxlength="8"
                                aria-label="<?= $es_nuevo ? 'Ingresar cédula de identidad' : 'Editar cédula de identidad'; ?>" required>
                     </div>
 
-                    <div class="row mb-3">
-                        <div class="col-md-4">
-                            <label class="form-label fw-bold">Título</label>
-                            <?php $titulos = ['Prof.', 'Lcdo.', 'Lcda.', 'Ing.', 'Abg.', 'Dr.', 'Dra.', 'Mgs.', 'Econ.']; ?>
-                            <select name="titulo" class="form-select" required>
-                                <?php if ($es_nuevo): ?>
-                                    <?php foreach($titulos as $t): ?>
-                                        <option value="<?= $t; ?>"><?= $t; ?></option>
-                                    <?php endforeach; ?>
-                                <?php else: ?>
-                                    <?php foreach($titulos as $t): ?>
-                                        <option value="<?= $t; ?>" <?= ($datos['titulo_actual'] == $t) ? 'selected' : ''; ?>><?= $t; ?></option>
-                                    <?php endforeach; ?>
-                                <?php endif; ?>
-                            </select>
-                        </div>
-                        <div class="col-md-8">
-                            <label class="form-label fw-bold">Nombre Completo (Sin el título)</label>
-                            <input type="text" name="nombre" class="form-control solo-letras"
-                                   value="<?= $es_nuevo ? '' : htmlspecialchars($datos['nombre']); ?>"
-                                   placeholder="<?= $es_nuevo ? 'Ej: Alexis Mujica' : ''; ?>"
-                                   pattern="[a-zA-ZáéíóúÁÉÍÓÚñÑ\s\.]+" title="Solo se permiten letras, espacios y puntos."
-                                   aria-label="<?= $es_nuevo ? 'Ingresar nombre completo' : 'Editar nombre completo'; ?>" required>
-                        </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Nombre Completo</label>
+                        <input type="text" name="nombre" class="form-control solo-letras"
+                               value="<?= $es_nuevo ? '' : htmlspecialchars($datos['nombre']); ?>"
+                               placeholder="<?= $es_nuevo ? 'Ej: Dr. Alexis Mujica' : ''; ?>"
+                               pattern="[a-zA-ZáéíóúÁÉÍÓÚñÑ\s\.]+" data-bs-toggle="tooltip" data-bs-placement="top" title="Solo se permiten letras, espacios y puntos."
+                               aria-label="<?= $es_nuevo ? 'Ingresar nombre completo' : 'Editar nombre completo'; ?>" required>
                     </div>
 
                     <div class="mb-4">
                         <?php if ($es_nuevo): ?>
                             <label class="form-label fw-bold">Estado en la Institución</label>
-                            <select name="estado" class="form-select" aria-label="Seleccionar estado del docente" required>
+                            <select name="estado" class="form-select" aria-label="Seleccionar estado del docente">
                                 <option value="ACTIVO">ACTIVO</option>
                                 <option value="INACTIVO">INACTIVO (Reposo/Jubilado)</option>
                             </select>
                         <?php else: ?>
                             <label class="form-label fw-bold">Estado</label>
-                            <select name="estado" class="form-select" aria-label="Editar estado del docente" required>
+                            <select name="estado" class="form-select" aria-label="Editar estado del docente">
                                 <option value="ACTIVO" <?= ($datos['estado'] == 'ACTIVO') ? 'selected' : ''; ?>>ACTIVO</option>
                                 <option value="INACTIVO" <?= ($datos['estado'] == 'INACTIVO') ? 'selected' : ''; ?>>INACTIVO</option>
                             </select>
+                        <?php endif; ?>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">Disponibilidad (opcional: si no marcas nada, no se restringe)</label>
+                        <table class="table table-sm table-bordered text-center align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th class="text-start">Día</th>
+                                    <?php foreach($turnos as $codigo => $nombre): ?>
+                                        <th><?= $nombre; ?></th>
+                                    <?php endforeach; ?>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach($dias as $dia): ?>
+                                    <tr>
+                                        <td class="text-start fw-bold"><?= $dia; ?></td>
+                                        <?php foreach($turnos as $codigo => $nombre): ?>
+                                            <?php $valor = $dia . '|' . $codigo; ?>
+                                            <td>
+                                                <input class="form-check-input" type="checkbox" name="disponibilidad[]" value="<?= $valor; ?>" id="disp<?= $dia . $codigo; ?>" <?= in_array($valor, $disp_seleccionada) ? 'checked' : ''; ?>>
+                                            </td>
+                                        <?php endforeach; ?>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">Materias que dicta (opcional: si no marcas nada, no se restringe)</label>
+                        <?php if (empty($materias)): ?>
+                            <p class="text-muted small mb-0">No hay materias registradas.</p>
+                        <?php else: ?>
+                            <?php foreach($materias as $m): ?>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="materias[]" value="<?= $m['id']; ?>" id="mat<?= $m['id']; ?>" <?= in_array($m['id'], $mat_seleccionadas) ? 'checked' : ''; ?>>
+                                    <label class="form-check-label" for="mat<?= $m['id']; ?>"><?= htmlspecialchars($m['nombre']); ?></label>
+                                </div>
+                            <?php endforeach; ?>
                         <?php endif; ?>
                     </div>
 

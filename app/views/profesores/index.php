@@ -1,6 +1,4 @@
 <?php
-// app/views/profesores/index.php — Nómina docente.
-// Migrada de modules/profesores/index.php.
 $es_admin = (isset($_SESSION['rol']) && strtolower($_SESSION['rol']) == 'administrador');
 ?>
 <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
@@ -20,6 +18,23 @@ $es_admin = (isset($_SESSION['rol']) && strtolower($_SESSION['rol']) == 'adminis
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar alerta"></button>
     </div>
 <?php endif; ?>
+
+<form method="GET" action="<?= $this->url('profesores'); ?>" class="row g-2 mb-3 area-no-imprimir align-items-end">
+    <div class="col-md-3">
+        <label class="form-label fw-bold small mb-1">Estado</label>
+        <select name="estado" class="form-select shadow-sm" onchange="this.form.submit()" aria-label="Filtrar por estado">
+            <option value="">Todos</option>
+            <option value="ACTIVO" <?= (($filtro_estado ?? '') == 'ACTIVO') ? 'selected' : ''; ?>>Activos</option>
+            <option value="INACTIVO" <?= (($filtro_estado ?? '') == 'INACTIVO') ? 'selected' : ''; ?>>Inactivos</option>
+        </select>
+    </div>
+    <div class="col-md-3">
+        <a href="<?= $this->url('profesores'); ?>" class="btn btn-outline-secondary w-100">Limpiar filtros</a>
+    </div>
+    <div class="col-md-6 text-md-end">
+        <small class="text-muted">Mostrando <b><?= count($profesores); ?></b> registro(s)</small>
+    </div>
+</form>
 
 <div class="row mb-3 area-no-imprimir">
     <div class="col-md-5 ms-auto">
@@ -43,6 +58,8 @@ $es_admin = (isset($_SESSION['rol']) && strtolower($_SESSION['rol']) == 'adminis
                         <th>Cédula</th>
                         <th>Nombre Completo</th>
                         <th>Estado</th>
+                        <th>Disponibilidad</th>
+                        <th>Materias</th>
                         <?php if($es_admin): ?>
                             <th>Acciones</th>
                         <?php endif; ?>
@@ -53,9 +70,7 @@ $es_admin = (isset($_SESSION['rol']) && strtolower($_SESSION['rol']) == 'adminis
                     <tr>
                         <td class="fw-bold"><?php echo htmlspecialchars($p['cedula']); ?></td>
 
-                        <!-- AQUI MOSTRAMOS EL TÍTULO JUNTO AL NOMBRE CENTRADO -->
                         <td>
-                            <span class="text-muted fw-bold"><?php echo htmlspecialchars($p['titulo'] ?? 'Prof.'); ?></span>
                             <?php echo htmlspecialchars($p['nombre']); ?>
                         </td>
 
@@ -67,12 +82,28 @@ $es_admin = (isset($_SESSION['rol']) && strtolower($_SESSION['rol']) == 'adminis
                             <?php endif; ?>
                         </td>
 
+                        <td class="text-start">
+                            <?php if (!empty($disponibilidad_por_profesor[$p['id']])): ?>
+                                <?php echo htmlspecialchars(implode(', ', $disponibilidad_por_profesor[$p['id']])); ?>
+                            <?php else: ?>
+                                <span class="text-muted">Sin restricción</span>
+                            <?php endif; ?>
+                        </td>
+
+                        <td class="text-start">
+                            <?php if (!empty($materias_por_profesor[$p['id']])): ?>
+                                <?php echo htmlspecialchars(implode(', ', $materias_por_profesor[$p['id']])); ?>
+                            <?php else: ?>
+                                <span class="text-muted">Sin restricción</span>
+                            <?php endif; ?>
+                        </td>
+
                         <?php if($es_admin): ?>
                         <td>
                             <div class="btn-group">
                                 <!-- PUNTO 12: Etiquetas descriptivas dinámicas -->
                                 <a href="<?= $this->url('profesores/editar', ['id' => $p['id']]); ?>" class="btn btn-sm btn-outline-primary" aria-label="Editar al profesor <?php echo htmlspecialchars($p['nombre']); ?>"><i class="bi bi-pencil"></i></a>
-                                <a href="<?= $this->url('profesores/eliminar', ['id' => $p['id']]); ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('¿Borrar profesor?');" aria-label="Eliminar al profesor <?php echo htmlspecialchars($p['nombre']); ?>"><i class="bi bi-trash"></i></a>
+                                <form method="POST" action="<?= $this->url('profesores/eliminar', ['id' => $p['id']]); ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('¿Borrar profesor?');" aria-label="Eliminar al profesor <?php echo htmlspecialchars($p['nombre']); ?>" style="display:inline;"><?= csrf_field() ?><button type="submit"><i class="bi bi-trash"></i></button></form>
                             </div>
                         </td>
                         <?php endif; ?>

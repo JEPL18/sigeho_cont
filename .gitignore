@@ -1,0 +1,7 @@
+app/config/master_key.php
+app/config/turnstile.php
+app/config/correo.php
+*.bak
+*.tmp
+.DS_Store
+Thumbs.db

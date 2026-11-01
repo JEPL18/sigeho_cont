@@ -91,4 +91,10 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     });
 
+    if (window.bootstrap) {
+        document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function(el) {
+            new bootstrap.Tooltip(el);
+        });
+    }
+
 });

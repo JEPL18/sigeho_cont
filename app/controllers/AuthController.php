@@ -1,16 +1,11 @@
 <?php
-// app/controllers/AuthController.php
-// Lógica de autenticación migrada de: index.php (login), logout.php,
-// verificar_2fa.php, configurar_2fa.php y recuperar_clave.php.
-
 require_once APP_PATH . '/libs/GoogleAuthenticator.php';
+require_once APP_PATH . '/libs/Correo.php';
+require_once APP_PATH . '/libs/Turnstile.php';
 
 class AuthController extends Controller {
 
-    /**
-     * Muestra el login y procesa el inicio de sesión
-     * (lógica original de index.php, incluyendo PUNTO 17 de intentos y 2FA).
-     */
+    
     public function login() {
         if (isset($_SESSION['usuario_id'])) {
             $this->redirect('dashboard');
@@ -23,69 +18,73 @@ class AuthController extends Controller {
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $correo = trim($_POST['correo']);
             $password = trim($_POST['password']);
+            $ip = isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : '';
+            $intentosIp = new IntentoIp($this->conn);
+            $esperaIp = ($ip !== '') ? $intentosIp->esperaRestante($ip) : 0;
 
-            if (empty($correo) || empty($password)) {
+            if ($esperaIp > 0) {
+                $error = "Demasiados intentos desde esta dirección. Espera $esperaIp segundos e inténtalo de nuevo.";
+            } elseif (!Turnstile::configurado()) {
+                $error = "Verificación de seguridad no configurada en el servidor. Contacte al administrador.";
+            } elseif (!Turnstile::verificar(isset($_POST['cf-turnstile-response']) ? $_POST['cf-turnstile-response'] : '', isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : null)) {
+                $error = "Verificación de seguridad fallida. Inténtalo de nuevo.";
+            } elseif (empty($correo) || empty($password)) {
                 $error = "Por favor, ingresa tu correo y contraseña.";
             } else {
                 try {
-                    // AÑADIMOS '2fa_activo' y '2fa_secret' A LA CONSULTA PARA EL DOBLE FACTOR
+
                     $user = $usuario->findParaLogin($correo);
 
                     if ($user) {
-                        // --- PUNTO 17: VERIFICAR SI LA CUENTA ESTÁ BLOQUEADA ---
+
                         if ($user['bloqueado'] == 1) {
                             $error = "Cuenta bloqueada por seguridad tras 3 intentos fallidos. Contacte al soporte técnico.";
                         } else {
                             if (password_verify($password, $user['password'])) {
 
-                                // Si entra correctamente, reseteamos sus intentos a 0
                                 $usuario->resetearIntentos($user['id']);
+                                if ($ip !== '') { $intentosIp->limpiar($ip); }
 
-                                // ======== NUEVA LÓGICA 2FA ========
                                 if ($user['2fa_activo'] == 1) {
-                                    // GUARDAMOS EN SESIÓN TEMPORAL
+
                                     $_SESSION['temp_user_id'] = $user['id'];
                                     $_SESSION['temp_nombre'] = $user['nombre'];
                                     $_SESSION['temp_rol'] = $user['rol'];
 
-                                    // --- NUEVO: DESCIFRAMOS LA LLAVE ANTES DE PONERLA EN LA SESIÓN TEMPORAL ---
                                     $_SESSION['temp_2fa_secret'] = descifrar_secreto($user['2fa_secret']);
 
-                                    // REDIRIGIMOS A LA VERIFICACIÓN
                                     $this->redirect('auth/verificar2fa');
                                 } else {
-                                    // INGRESO NORMAL (No tiene 2FA)
-                                    // PUNTO 27: Regenerar ID de sesión para prevenir ataques de "Session Fixation"
+
                                     session_regenerate_id(true);
 
                                     $_SESSION['usuario_id'] = $user['id'];
                                     $_SESSION['nombre'] = $user['nombre'];
                                     $_SESSION['rol'] = $user['rol'];
 
-                                    // Registro en la bitácora
                                     $bitacora->registrar($user['id'], "Inicio de sesión exitoso");
 
                                     $this->redirect('dashboard');
                                 }
-                                // ==================================
 
                             } else {
-                                // --- PUNTO 17: LÓGICA DE INTENTOS FALLIDOS ---
+
+                                if ($ip !== '') { $intentosIp->registrarFallo($ip); }
                                 $resultado = $usuario->registrarIntentoFallido($user['id'], $user['intentos']);
 
                                 if ($resultado['bloqueado']) {
                                     $error = "¡Cuenta bloqueada! Ha excedido los 3 intentos permitidos.";
 
-                                    // Registramos el bloqueo en la bitácora
                                     $bitacora->registrar($user['id'], "Cuenta bloqueada por intentos fallidos");
                                 } else {
-                                    // Actualizamos el contador y le avisamos cuántos le quedan
+
                                     $quedan = 3 - $resultado['intentos'];
                                     $error = "Contraseña incorrecta. Le quedan $quedan intento(s).";
                                 }
                             }
                         }
                     } else {
+                        if ($ip !== '') { $intentosIp->registrarFallo($ip); }
                         $error = "El correo no está registrado en el sistema.";
                     }
                 } catch(PDOException $e) {
@@ -98,11 +97,9 @@ class AuthController extends Controller {
         $this->renderPage('auth/login', ['error' => $error, 'msg' => $msg]);
     }
 
-    /**
-     * Verificación del código 2FA tras el login (verificar_2fa.php).
-     */
+    
     public function verificar2fa() {
-        // Si no pasó por el login primero, lo rebotamos
+
         if (!isset($_SESSION['temp_user_id'])) {
             $this->redirect('auth/login');
         }
@@ -115,19 +112,17 @@ class AuthController extends Controller {
             $secret = $_SESSION['temp_2fa_secret'];
 
             $ga = new PHPGangsta_GoogleAuthenticator();
-            $resultado = $ga->verifyCode($secret, $codigo_ingresado, 2); // Tolerancia de tiempo
+            $resultado = $ga->verifyCode($secret, $codigo_ingresado, 2);
 
             if ($resultado) {
-                // CÓDIGO CORRECTO: Transformar sesión temporal en sesión real
+
                 session_regenerate_id(true);
                 $_SESSION['usuario_id'] = $_SESSION['temp_user_id'];
                 $_SESSION['nombre'] = $_SESSION['temp_nombre'];
                 $_SESSION['rol'] = $_SESSION['temp_rol'];
 
-                // Registrar en bitácora
                 $bitacora->registrar($_SESSION['usuario_id'], "Inicio de sesión exitoso (Validado con 2FA)");
 
-                // Limpiar temporales
                 unset($_SESSION['temp_user_id']);
                 unset($_SESSION['temp_nombre']);
                 unset($_SESSION['temp_rol']);
@@ -142,28 +137,26 @@ class AuthController extends Controller {
         $this->renderPage('auth/verificar_2fa', ['error' => $error]);
     }
 
-    /**
-     * Cierre de sesión con registro en bitácora (logout.php).
-     */
+    
     public function logout() {
-        // --- NUEVO: REGISTRO DE BITÁCORA (SALIDA) ---
+
         if (isset($_SESSION['usuario_id'])) {
             try {
                 $bitacora = new Bitacora($this->conn);
                 $bitacora->registrar($_SESSION['usuario_id'], "Cierre de sesión manual");
             } catch(PDOException $e) {
-                // Silencioso, si falla la bitácora igual debe dejar salir al usuario.
+
             }
         }
-        // ---------------------------------------------
 
-        session_destroy(); // Destruye la sesión segura
-        $this->redirect('auth/login'); // Te devuelve al Login
+        session_unset();
+        $params = session_get_cookie_params();
+        setcookie(session_name(), '', time() - 42000, $params['path'], $params['domain'], $params['secure'], $params['httponly']);
+        session_destroy();
+        $this->redirect('auth/login');
     }
 
-    /**
-     * Activar/desactivar 2FA de la cuenta propia (configurar_2fa.php).
-     */
+    
     public function configurar2fa() {
         $this->requireLogin();
 
@@ -172,28 +165,24 @@ class AuthController extends Controller {
         $error = '';
         $success = '';
 
-        // 1. OBTENEMOS EL ESTADO ACTUAL DEL USUARIO
         $user = $usuario->datos2fa($_SESSION['usuario_id']);
 
-        // --- NUEVO: DESCIFRAMOS LA LLAVE SI EXISTE EN LA BASE DE DATOS ---
         $secret_descifrado = null;
         if (!empty($user['2fa_secret'])) {
             $secret_descifrado = descifrar_secreto($user['2fa_secret']);
         }
 
-        // 2. SI NO TIENE UNA LLAVE SECRETA, LE CREAMOS UNA TEMPORAL
         if (empty($secret_descifrado) && !isset($_SESSION['temp_2fa_secret'])) {
             $_SESSION['temp_2fa_secret'] = $ga->createSecret();
         }
 
-        // Usaremos la llave descifrada si ya la tiene, o la temporal si es nuevo
         $secret = !empty($secret_descifrado) ? $secret_descifrado : $_SESSION['temp_2fa_secret'];
 
-        // 3. GENERAMOS LA URL DEL CÓDIGO QR
-        $titulo = urlencode('SIGEHO-CONT');
-        $qrCodeUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=' . urlencode('otpauth://totp/'.$titulo.'?secret='.$secret);
+        $protocolo = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+        $imagen = $protocolo . '://' . $_SERVER['HTTP_HOST'] . BASE_URL . 'assets/img/logo_conta.jpeg';
+        $otpauth = 'otpauth://totp/SIGEHO-CONT:' . $user['correo'] . '?secret=' . $secret . '&issuer=SIGEHO-CONT&image=' . urlencode($imagen);
+        $qrCodeUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=' . urlencode($otpauth);
 
-        // 4. PROCESAR EL FORMULARIO DE VERIFICACIÓN
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             if (isset($_POST['activar_2fa'])) {
                 $codigo_ingresado = $_POST['codigo'];
@@ -201,7 +190,7 @@ class AuthController extends Controller {
                 $resultado = $ga->verifyCode($secret, $codigo_ingresado, 2);
 
                 if ($resultado) {
-                    // --- NUEVO: CIFRAMOS LA LLAVE JUSTO ANTES DE GUARDARLA ---
+
                     $secret_cifrado = cifrar_secreto($secret);
 
                     $usuario->activar2fa($_SESSION['usuario_id'], $secret_cifrado);
@@ -215,13 +204,19 @@ class AuthController extends Controller {
             }
 
             if (isset($_POST['desactivar_2fa'])) {
-                $usuario->desactivar2fa($_SESSION['usuario_id']);
+                $codigo_ingresado = trim($_POST['codigo'] ?? '');
 
-                $success = "Se ha desactivado el 2FA de tu cuenta.";
-                $user['2fa_activo'] = 0;
-                $user['2fa_secret'] = null;
-                $secret_descifrado = null;
-                unset($_SESSION['temp_2fa_secret']);
+                if (empty($codigo_ingresado) || !$ga->verifyCode($secret, $codigo_ingresado, 2)) {
+                    $error = "Código 2FA incorrecto o expirado. No se desactivó el 2FA.";
+                } else {
+                    $usuario->desactivar2fa($_SESSION['usuario_id']);
+
+                    $success = "Se ha desactivado el 2FA de tu cuenta.";
+                    $user['2fa_activo'] = 0;
+                    $user['2fa_secret'] = null;
+                    $secret_descifrado = null;
+                    unset($_SESSION['temp_2fa_secret']);
+                }
             }
         }
 
@@ -234,30 +229,39 @@ class AuthController extends Controller {
         ]);
     }
 
-    /**
-     * Recuperación de contraseña en 3 pasos (recuperar_clave.php).
-     */
+    
     public function recuperar() {
         $usuario = new Usuario($this->conn);
         $error = "";
-        $step = 1; // Paso por defecto: Pedir el correo
+        $step = 1;
 
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-            if (isset($_POST['action'])) {
+            $turnstileOk = true;
+            if (!Turnstile::configurado()) {
+                $error = "Verificación de seguridad no configurada en el servidor. Contacte al administrador.";
+                $turnstileOk = false;
+            } elseif (!Turnstile::verificar(isset($_POST['cf-turnstile-response']) ? $_POST['cf-turnstile-response'] : '', isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : null)) {
+                $error = "Verificación de seguridad fallida. Inténtalo de nuevo.";
+                if (isset($_POST['action']) && $_POST['action'] == 'verificar_respuestas') {
+                    $step = 2;
+                } elseif (isset($_POST['action']) && $_POST['action'] == 'actualizar_clave' && isset($_SESSION['reset_autorizado']) && $_SESSION['reset_autorizado'] === true) {
+                    $step = 3;
+                }
+                $turnstileOk = false;
+            }
+            if ($turnstileOk && isset($_POST['action'])) {
 
-                // PASO 1: Validar si el correo existe
                 if ($_POST['action'] == 'verificar_correo') {
                     $correo = trim(strtolower($_POST['correo']));
 
                     if ($usuario->existeIdPorCorreo($correo)) {
-                        $_SESSION['reset_email'] = $correo; // Guardamos el correo en sesión temporalmente
-                        $step = 2; // Avanzar a las preguntas
+                        $_SESSION['reset_email'] = $correo;
+                        $step = 2;
                     } else {
                         $error = "No existe ninguna cuenta vinculada a este correo institucional.";
                     }
                 }
 
-                // PASO 2: Validar las 3 respuestas de seguridad
                 elseif ($_POST['action'] == 'verificar_respuestas') {
                     $r1 = strtolower(trim($_POST['r1']));
                     $r2 = strtolower(trim($_POST['r2']));
@@ -265,20 +269,18 @@ class AuthController extends Controller {
                     $correo = $_SESSION['reset_email'];
 
                     if ($usuario->verificarRespuestasSeguridad($correo, $r1, $r2, $r3)) {
-                        $_SESSION['reset_autorizado'] = true; // Permiso concedido para cambiar clave
-                        $step = 3; // Avanzar al formulario de nueva clave
+                        $_SESSION['reset_autorizado'] = true;
+                        $step = 3;
                     } else {
                         $error = "Respuestas incorrectas. Verifique la ortografía e intente nuevamente.";
-                        $step = 2; // Mantener en las preguntas
+                        $step = 2;
                     }
                 }
 
-                // PASO 3: Guardar la nueva contraseña
                 elseif ($_POST['action'] == 'actualizar_clave') {
                     if (isset($_SESSION['reset_autorizado']) && $_SESSION['reset_autorizado'] === true) {
                         $nueva_clave = $_POST['nueva_clave'];
 
-                        // --- PUNTO 23 APROBADO: MÍNIMO 16 CARACTERES ---
                         if (strlen($nueva_clave) < 16) {
                             $error = "Por políticas de seguridad (ENISA), la contraseña debe tener al menos 16 caracteres.";
                             $step = 3;
@@ -288,11 +290,9 @@ class AuthController extends Controller {
 
                             $usuario->actualizarPasswordPorCorreo($correo, $pass_hash);
 
-                            // Limpiar la seguridad temporal
                             unset($_SESSION['reset_email']);
                             unset($_SESSION['reset_autorizado']);
 
-                            // Redirigir al login con éxito
                             $this->redirect('auth/login', ['msg' => 'clave_recuperada']);
                         }
                     }
@@ -301,5 +301,94 @@ class AuthController extends Controller {
         }
 
         $this->renderPage('auth/recuperar_clave', ['error' => $error, 'step' => $step]);
+    }
+
+    public function solicitarRecuperacion() {
+        $mensaje = '';
+        $error = '';
+        if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+            $turnstileConfigurado = Turnstile::configurado();
+            if (!$turnstileConfigurado || !Turnstile::verificar(isset($_POST['cf-turnstile-response']) ? $_POST['cf-turnstile-response'] : '', isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : null)) {
+                $error = $turnstileConfigurado ? 'Verificación de seguridad fallida. Inténtalo de nuevo.' : 'Verificación de seguridad no configurada en el servidor. Contacte al administrador.';
+                $this->renderPage('auth/solicitar_recuperacion', ['mensaje' => '', 'error' => $error]);
+                return;
+            }
+            $correo = trim(strtolower($_POST['correo'] ?? ''));
+            $usuario = new Usuario($this->conn);
+            $tokens = new TokenRecuperacion($this->conn);
+            $usuario_id = $usuario->findIdPorCorreo($correo);
+            if ($usuario_id !== null) {
+                $tokens->invalidarDeUsuario($usuario_id);
+                $token = bin2hex(random_bytes(32));
+                $expira = date('Y-m-d H:i:s', time() + 3600);
+                $id = $tokens->crear($usuario_id, hash('sha256', $token), $expira);
+                $protocolo = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+                $enlace = $protocolo . '://' . $_SERVER['HTTP_HOST'] . BASE_URL . 'auth/restablecer?token=' . $token;
+                $enlaceSeguro = htmlspecialchars($enlace, ENT_QUOTES, 'UTF-8');
+                $cuerpoHtml = '<div style="font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:0 auto;color:#333333;">'
+                    . '<div style="background-color:#8b1a1a;color:#ffffff;padding:20px;text-align:center;">'
+                    . '<div style="font-size:22px;font-weight:bold;">SIGEHO-CONT</div>'
+                    . '<div style="font-size:13px;">Universidad Politécnica Territorial de Falcón &lsquo;Alonso Gamero&rsquo; (UPTAG)</div>'
+                    . '</div>'
+                    . '<div style="padding:24px;">'
+                    . '<h2 style="color:#8b1a1a;margin-top:0;">Recuperación de contraseña</h2>'
+                    . '<p>Hola,</p>'
+                    . '<p>Recibimos una solicitud para restablecer la contraseña de tu cuenta en SIGEHO-CONT. Para continuar, pulsa el siguiente botón:</p>'
+                    . '<p style="text-align:center;margin:28px 0;"><a href="' . $enlaceSeguro . '" style="display:inline-block;background-color:#8b1a1a;color:#ffffff;padding:13px 30px;border-radius:6px;text-decoration:none;font-weight:bold;">Restablecer contraseña</a></p>'
+                    . '<p>El enlace es válido por <strong>60 minutos</strong> y solo puede usarse <strong>una vez</strong>.</p>'
+                    . '<p>Si el botón no funciona, copia y pega este enlace en tu navegador:<br><span style="word-break:break-all;color:#0a58ca;">' . $enlaceSeguro . '</span></p>'
+                    . '<p>Si no solicitaste este cambio, ignora este mensaje: tu contraseña no se modificará.</p>'
+                    . '</div>'
+                    . '<div style="border-top:1px solid #dddddd;padding:12px 24px;font-size:12px;color:#777777;text-align:center;">Este es un mensaje automático de SIGEHO-CONT (UPTAG).</div>'
+                    . '</div>';
+                $cuerpo = 'Para restablecer tu contraseña, abre este enlace (válido por 60 minutos y de un solo uso): ' . $enlace . "\n\n" . 'Si no solicitaste este cambio, ignora este mensaje.';
+                $enviado = Correo::enviar($correo, 'Recuperación de contraseña - SIGEHO-CONT', $cuerpo, $cuerpoHtml);
+                if (!$enviado) {
+                    $tokens->eliminar($id);
+                    error_log('Recuperación por correo fallida para usuario ' . $usuario_id);
+                }
+            }
+            $mensaje = 'Si el correo está registrado, recibirás un enlace para restablecer tu contraseña.';
+        }
+        $this->renderPage('auth/solicitar_recuperacion', ['mensaje' => $mensaje, 'error' => $error]);
+    }
+
+    public function restablecer() {
+        $error = '';
+        $tokens = new TokenRecuperacion($this->conn);
+        $token = isset($_GET['token']) ? $_GET['token'] : '';
+        $registro = null;
+        if (is_string($token) && preg_match('/^[a-f0-9]{64}$/', $token)) {
+            $registro = $tokens->buscarValido(hash('sha256', $token));
+        }
+        $valido = !empty($registro);
+        if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+            $token = isset($_POST['token']) ? $_POST['token'] : '';
+            $nueva = isset($_POST['nueva_clave']) ? $_POST['nueva_clave'] : '';
+            $confirmar = isset($_POST['confirmar_clave']) ? $_POST['confirmar_clave'] : '';
+            $registro = null;
+            if (is_string($token) && preg_match('/^[a-f0-9]{64}$/', $token)) {
+                $registro = $tokens->buscarValido(hash('sha256', $token));
+            }
+            if (empty($registro)) {
+                $error = 'El enlace es inválido o ha vencido.';
+                $valido = false;
+            } elseif (strlen($nueva) < 16) {
+                $error = 'Por políticas de seguridad (ENISA), la contraseña debe tener al menos 16 caracteres.';
+                $valido = true;
+            } elseif ($nueva !== $confirmar) {
+                $error = 'Las contraseñas no coinciden.';
+                $valido = true;
+            } else {
+                $usuario = new Usuario($this->conn);
+                $usuario->actualizarPasswordPorId($registro['usuario_id'], password_hash($nueva, PASSWORD_DEFAULT));
+                $tokens->marcarUsado($registro['id']);
+                $tokens->invalidarDeUsuario($registro['usuario_id']);
+                $this->redirect('auth/login', ['msg' => 'clave_recuperada']);
+            }
+        } elseif (!$valido) {
+            $error = 'El enlace es inválido o ha vencido.';
+        }
+        $this->renderPage('auth/restablecer', ['error' => $error, 'valido' => $valido, 'token' => is_string($token) ? $token : '']);
     }
 }

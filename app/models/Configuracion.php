@@ -1,6 +1,4 @@
 <?php
-// app/models/Configuracion.php — Parámetros del sistema (tabla `configuracion`).
-
 class Configuracion {
     protected $conn;
     public function __construct($conn) { $this->conn = $conn; }

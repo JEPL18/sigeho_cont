@@ -1,6 +1,4 @@
 <?php
-// app/models/Aula.php — Consultas de la tabla `aulas`.
-
 class Aula {
     protected $conn;
     public function __construct($conn) { $this->conn = $conn; }
@@ -8,6 +6,15 @@ class Aula {
     public function all() {
         $sql = "SELECT * FROM aulas ORDER BY codigo ASC";
         return $this->conn->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function filtrar($estado = '') {
+        if ($estado === 'OPERATIVA' || $estado === 'INOPERATIVA') {
+            $stmt = $this->conn->prepare("SELECT * FROM aulas WHERE estado = ? ORDER BY codigo ASC");
+            $stmt->execute([$estado]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        }
+        return $this->all();
     }
 
     public function find($id) {
@@ -35,14 +42,14 @@ class Aula {
         return $check->rowCount() > 0;
     }
 
-    public function create($codigo, $capacidad, $estado) {
-        $stmt = $this->conn->prepare("INSERT INTO aulas (codigo, capacidad, estado) VALUES (?, ?, ?)");
-        $stmt->execute([$codigo, $capacidad, $estado]);
+    public function create($codigo, $capacidad, $estado, $recursos) {
+        $stmt = $this->conn->prepare("INSERT INTO aulas (codigo, capacidad, estado, recursos) VALUES (?, ?, ?, ?)");
+        $stmt->execute([$codigo, $capacidad, $estado, $recursos]);
     }
 
-    public function update($id, $codigo, $capacidad, $estado) {
-        $stmt = $this->conn->prepare("UPDATE aulas SET codigo=?, capacidad=?, estado=? WHERE id=?");
-        $stmt->execute([$codigo, $capacidad, $estado, $id]);
+    public function update($id, $codigo, $capacidad, $estado, $recursos) {
+        $stmt = $this->conn->prepare("UPDATE aulas SET codigo=?, capacidad=?, estado=?, recursos=? WHERE id=?");
+        $stmt->execute([$codigo, $capacidad, $estado, $recursos, $id]);
     }
 
     public function delete($id) {

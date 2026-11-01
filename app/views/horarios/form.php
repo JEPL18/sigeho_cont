@@ -1,7 +1,4 @@
 <?php
-// app/views/horarios/form.php — Formulario compartido nuevo/editar.
-// Migrado de modules/horarios/nuevo.php y editar.php.
-// $modo: 'nuevo' | 'editar'. $datos: fila del bloque (modo editar).
 $es_nuevo = ($modo === 'nuevo');
 $form_action = $es_nuevo ? $this->url('horarios/nuevo') : $this->url('horarios/editar', ['id' => $id]);
 $dias = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado'];
@@ -23,17 +20,16 @@ $dias = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado'];
         <?php if($success): ?><div class="alert alert-success" role="alert"><?php echo $success; ?></div><?php endif; ?>
 
         <form action="<?= $form_action; ?>" method="POST">
+    <?= csrf_field() ?>
             <div class="row mb-4">
                 <div class="col-md-6">
                     <label class="form-label fw-bold">Sección</label>
                     <select name="seccion_id" class="form-select" aria-label="Seleccionar la sección" required>
-                        <?php if ($es_nuevo): ?>
-                            <option value="" disabled selected>Seleccione la sección...</option>
-                        <?php endif; ?>
+                        <option value="" disabled <?= $es_nuevo ? 'selected' : ''; ?>>Seleccione la sección...</option>
                         <?php foreach($secciones as $s):
                             $texto_tray = ($s['trayecto'] == 0) ? 'Inicial' : 'T'.$s['trayecto'];
                         ?>
-                            <option value="<?= $s['id']; ?>" <?= (!$es_nuevo && $datos['seccion_id'] == $s['id']) ? 'selected' : ''; ?>>
+                            <option value="<?= $s['id']; ?>" data-alumnos="<?= $s['cantidad_alumnos']; ?>" <?= (!$es_nuevo && $datos['seccion_id'] == $s['id']) ? 'selected' : ''; ?>>
                                 <?= $texto_tray . " - " . $s['codigo'] . " (" . $s['cantidad_alumnos'] . " Alumnos)"; ?>
                             </option>
                         <?php endforeach; ?>
@@ -42,9 +38,7 @@ $dias = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado'];
                 <div class="col-md-6">
                     <label class="form-label fw-bold">Materia</label>
                     <select name="materia_id" class="form-select" aria-label="Seleccionar la materia" required>
-                        <?php if ($es_nuevo): ?>
-                            <option value="" disabled selected>Seleccione la materia...</option>
-                        <?php endif; ?>
+                        <option value="" disabled <?= $es_nuevo ? 'selected' : ''; ?>>Seleccione la materia...</option>
                         <?php foreach($materias as $m): ?>
                             <option value="<?= $m['id']; ?>" <?= (!$es_nuevo && $datos['materia_id'] == $m['id']) ? 'selected' : ''; ?>><?= htmlspecialchars($m['nombre']); ?></option>
                         <?php endforeach; ?>
@@ -56,9 +50,7 @@ $dias = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado'];
                 <div class="col-md-6">
                     <label class="form-label fw-bold"><?= $es_nuevo ? 'Profesor (Solo Activos)' : 'Profesor'; ?></label>
                     <select name="profesor_id" class="form-select" aria-label="Seleccionar el profesor" required>
-                        <?php if ($es_nuevo): ?>
-                            <option value="" disabled selected>Seleccione el docente...</option>
-                        <?php endif; ?>
+                        <option value="" disabled <?= $es_nuevo ? 'selected' : ''; ?>>Seleccione el docente...</option>
                         <?php foreach($profesores as $p): ?>
                             <option value="<?= $p['id']; ?>" <?= (!$es_nuevo && $datos['profesor_id'] == $p['id']) ? 'selected' : ''; ?>><?= htmlspecialchars($p['nombre']); ?></option>
                         <?php endforeach; ?>
@@ -67,12 +59,10 @@ $dias = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado'];
                 <div class="col-md-6">
                     <label class="form-label fw-bold"><?= $es_nuevo ? 'Aula (Solo Operativas)' : 'Aula'; ?></label>
                     <select name="aula_id" class="form-select" aria-label="Seleccionar el aula" required>
-                        <?php if ($es_nuevo): ?>
-                            <option value="" disabled selected>Seleccione el aula...</option>
-                        <?php endif; ?>
+                        <option value="" disabled <?= $es_nuevo ? 'selected' : ''; ?>>Seleccione el aula...</option>
                         <?php foreach($aulas as $a): ?>
-                            <option value="<?= $a['id']; ?>" <?= (!$es_nuevo && $datos['aula_id'] == $a['id']) ? 'selected' : ''; ?>>
-                                <?= htmlspecialchars($a['codigo']) . " (Cap: " . $a['capacidad'] . " ptos)"; ?>
+                            <option value="<?= $a['id']; ?>" data-capacidad="<?= $a['capacidad']; ?>" <?= (!$es_nuevo && $datos['aula_id'] == $a['id']) ? 'selected' : ''; ?>>
+                                <?= htmlspecialchars($a['codigo']) . " (Cap: " . $a['capacidad'] . " alumnos)"; ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
@@ -82,7 +72,7 @@ $dias = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado'];
             <div class="row mb-4 bg-light p-3 rounded">
                 <div class="col-md-4">
                     <label class="form-label fw-bold">Día</label>
-                    <select name="dia_semana" class="form-select" aria-label="Seleccionar el día de la semana" required>
+                    <select name="dia_semana" class="form-select" aria-label="Seleccionar el día de la semana">
                         <?php foreach($dias as $d): ?>
                             <option value="<?= $d; ?>" <?= (!$es_nuevo && $datos['dia_semana'] == $d) ? 'selected' : ''; ?>>
                                 <?= ($d == 'Miercoles') ? 'Miércoles' : (($d == 'Sabado') ? 'Sábado' : $d); ?>
@@ -104,10 +94,30 @@ $dias = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado'];
                 </div>
             </div>
             <?php if ($es_nuevo): ?>
+                <p class="text-muted small mb-3">¿No sabes qué hueco usar? <a href="<?= $this->url('horarios/sugerir'); ?>">Sugerir huecos libres</a> y crea el horario desde la sugerencia.</p>
                 <button type="submit" class="btn btn-danger w-100 fw-bold" style="background-color: #8B1A1A;" aria-label="Guardar asignación de bloque"><i class="bi bi-calendar-check"></i> Asignar Bloque</button>
             <?php else: ?>
                 <button type="submit" class="btn btn-primary w-100 fw-bold" aria-label="Guardar cambios del bloque de horario"><i class="bi bi-save"></i> Actualizar Bloque</button>
             <?php endif; ?>
+            <script>
+            document.querySelector('form').addEventListener('submit', function(e) {
+                var inicio = document.querySelector('input[name="hora_inicio"]').value;
+                var fin = document.querySelector('input[name="hora_fin"]').value;
+                if (inicio && fin && fin <= inicio) {
+                    e.preventDefault();
+                    alert('La hora de fin debe ser posterior a la hora de inicio.');
+                    return;
+                }
+                var sec = document.querySelector('select[name="seccion_id"]');
+                var aula = document.querySelector('select[name="aula_id"]');
+                var alumnos = sec && sec.selectedOptions.length ? parseInt(sec.selectedOptions[0].dataset.alumnos || '0', 10) : 0;
+                var capacidad = aula && aula.selectedOptions.length ? parseInt(aula.selectedOptions[0].dataset.capacidad || '0', 10) : 0;
+                if (alumnos > 0 && capacidad > 0 && alumnos > capacidad) {
+                    e.preventDefault();
+                    alert('Capacidad excedida: el aula (' + capacidad + ' alumnos) no soporta la matrícula (' + alumnos + ' alumnos).');
+                }
+            });
+            </script>
         </form>
     </div>
 </div>

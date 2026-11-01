@@ -1,6 +1,4 @@
 <?php
-// app/models/LogChoque.php — Auditoría de choques bloqueados (tabla `log_choques`).
-
 class LogChoque {
     protected $conn;
     public function __construct($conn) { $this->conn = $conn; }

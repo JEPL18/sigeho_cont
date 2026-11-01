@@ -1,17 +1,7 @@
 <?php
-// app/core/Router.php — Enrutador.
-//
-// Formato de ruta: controlador/accion
-//   URLs amigables : /horarios/nuevo   (vía .htaccess -> index.php?r=horarios/nuevo)
-//   Alternativa     : /index.php?r=horarios/nuevo
-//
-// La ruta raíz ('') lleva al login si no hay sesión, o al dashboard si la hay
-// (igual que el index.php original).
-
 class Router {
     protected $conn;
 
-    /** Mapa de controladores: segmento URL => clase controladora. */
     protected $controladores = [
         'auth'          => 'AuthController',
         'dashboard'     => 'DashboardController',
@@ -22,6 +12,8 @@ class Router {
         'horarios'      => 'HorarioController',
         'usuarios'      => 'UsuarioController',
         'configuracion' => 'ConfiguracionController',
+        'ayuda'         => 'AyudaController',
+        'bitacora'      => 'BitacoraController',
     ];
 
     public function __construct($conn) {
@@ -31,7 +23,6 @@ class Router {
     public function dispatch() {
         $ruta = isset($_GET['r']) ? trim($_GET['r'], '/') : '';
 
-        // Ruta raíz: comportamiento del index.php original
         if ($ruta === '') {
             if (isset($_SESSION['usuario_id'])) {
                 $this->ir('dashboard');
@@ -43,7 +34,6 @@ class Router {
         $clave  = strtolower($partes[0]);
         $accion = isset($partes[1]) && $partes[1] !== '' ? $partes[1] : 'index';
 
-        // Solo letras, números y guiones bajos en el nombre de la acción
         if (!preg_match('/^[a-zA-Z][a-zA-Z0-9_]*$/', $accion)) {
             $this->noEncontrado();
         }

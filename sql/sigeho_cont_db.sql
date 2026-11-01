@@ -31,7 +31,8 @@ CREATE TABLE `aulas` (
   `id` int(11) NOT NULL,
   `codigo` varchar(20) NOT NULL,
   `capacidad` int(11) NOT NULL,
-  `estado` varchar(20) NOT NULL DEFAULT 'OPERATIVA'
+  `estado` varchar(20) NOT NULL DEFAULT 'OPERATIVA',
+  `recursos` text DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -141,6 +142,18 @@ CREATE TABLE `materias` (
   `horas_semanales` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `materia_prelacion`
+--
+
+CREATE TABLE `materia_prelacion` (
+  `materia_id` int(11) NOT NULL,
+  `prelacion_id` int(11) NOT NULL,
+  PRIMARY KEY (`materia_id`, `prelacion_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
 --
 -- Volcado de datos para la tabla `materias`
 --
@@ -164,6 +177,31 @@ CREATE TABLE `profesores` (
   `nombre` varchar(100) NOT NULL,
   `max_horas` int(11) DEFAULT 5,
   `estado` varchar(20) NOT NULL DEFAULT 'ACTIVO'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `profesor_disponibilidad`
+--
+
+CREATE TABLE `profesor_disponibilidad` (
+  `profesor_id` int(11) NOT NULL,
+  `dia_semana` varchar(20) NOT NULL,
+  `turno` varchar(20) NOT NULL,
+  PRIMARY KEY (`profesor_id`, `dia_semana`, `turno`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `profesor_materia`
+--
+
+CREATE TABLE `profesor_materia` (
+  `profesor_id` int(11) NOT NULL,
+  `materia_id` int(11) NOT NULL,
+  PRIMARY KEY (`profesor_id`, `materia_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -213,7 +251,7 @@ CREATE TABLE `usuarios` (
   `password` varchar(255) NOT NULL,
   `2fa_secret` varchar(255) DEFAULT NULL,
   `2fa_activo` tinyint(1) DEFAULT 0,
-  `rol` enum('administrador','coordinador','profesor') NOT NULL,
+  `rol` enum('administrador','coordinador','profesor','asistente') NOT NULL,
   `pregunta_seguridad_1` varchar(255) NOT NULL DEFAULT '¿Fecha de cumpleaños?',
   `respuesta_seguridad_1` varchar(255) NOT NULL DEFAULT 'uptag',
   `pregunta_seguridad_2` varchar(255) NOT NULL DEFAULT '¿Nombre del colegio donde estudiaste?',
@@ -375,6 +413,34 @@ ALTER TABLE `horarios`
   ADD CONSTRAINT `horarios_ibfk_2` FOREIGN KEY (`materia_id`) REFERENCES `materias` (`id`),
   ADD CONSTRAINT `horarios_ibfk_3` FOREIGN KEY (`profesor_id`) REFERENCES `profesores` (`id`),
   ADD CONSTRAINT `horarios_ibfk_4` FOREIGN KEY (`aula_id`) REFERENCES `aulas` (`id`);
+
+--
+-- Estructura de tabla para la tabla `recuperacion_tokens`
+--
+
+CREATE TABLE IF NOT EXISTS `recuperacion_tokens` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `usuario_id` int(11) NOT NULL,
+  `token_hash` char(64) NOT NULL,
+  `expira_en` datetime NOT NULL,
+  `usado` tinyint(1) NOT NULL DEFAULT 0,
+  `creado_en` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `usuario_id` (`usuario_id`),
+  CONSTRAINT `recuperacion_tokens_ibfk_1` FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Estructura de tabla para la tabla `intentos_ip`
+--
+
+CREATE TABLE IF NOT EXISTS `intentos_ip` (
+  `ip` varchar(45) NOT NULL,
+  `intentos` int(11) NOT NULL DEFAULT 0,
+  `ultimo_intento` datetime NOT NULL,
+  PRIMARY KEY (`ip`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

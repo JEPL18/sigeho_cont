@@ -1,11 +1,7 @@
 <?php
-// app/views/layouts/header.php
-// Adaptación de includes/header.php del proyecto original.
-// $baseUrl apunta a public/ ; $conn viene del controlador.
 if (!isset($baseUrl)) { $baseUrl = ''; }
 $rol_usuario = isset($_SESSION['rol']) ? strtolower($_SESSION['rol']) : '';
 
-// Lógica para calcular la semana actual (Máximo 12 Semanas)
 $semana_texto = "Sin configurar";
 if (isset($conn)) {
     try {
@@ -13,7 +9,7 @@ if (isset($conn)) {
         if ($stmt_conf) {
             $fecha_inicio_db = $stmt_conf->fetchColumn();
             if ($fecha_inicio_db) {
-                // Comparamos solo las fechas (sin horas) para mayor exactitud
+
                 $inicio_lapso = new DateTime($fecha_inicio_db);
                 $inicio_lapso->setTime(0, 0, 0);
                 $hoy = new DateTime();
@@ -23,20 +19,19 @@ if (isset($conn)) {
                     $diff = $inicio_lapso->diff($hoy);
                     $semana_num = floor($diff->days / 7) + 1;
 
-                    // LÍMITE: Si pasa de 12 semanas, se declara finalizado
                     if ($semana_num > 12) {
                         $semana_texto = "Trimestre Finalizado";
                     } else {
                         $semana_texto = "Semana " . $semana_num;
                     }
                 } else {
-                    // Si la fecha configurada es del futuro
+
                     $semana_texto = "Por iniciar";
                 }
             }
         }
     } catch(PDOException $e) {
-        // Ignorar si hay fallo de BD para que no se rompa la cabecera
+
     }
 }
 ?>
@@ -48,6 +43,7 @@ if (isset($conn)) {
     <title>SIGEHO-CONT | UPTAG</title>
     <!-- Favicon -->
     <link rel="icon" href="<?php echo $baseUrl; ?>assets/img/logo_conta.jpeg" type="image/jpeg">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
@@ -55,8 +51,55 @@ if (isset($conn)) {
 
     <!-- NUESTRO CSS CENTRALIZADO -->
     <link rel="stylesheet" href="<?php echo $baseUrl; ?>assets/css/estilos.css">
+<style>
+                .tabla-siace {
+                    width: 100%;
+                    border-collapse: collapse;
+                    font-family: Arial, sans-serif;
+                }
+                .tabla-siace th, .tabla-siace td {
+                    border: 1px solid #000;
+                    text-align: center;
+                    vertical-align: middle;
+                }
+                .tabla-siace th {
+                    background-color: #fcfcfc;
+                    color: #000;
+                    font-size: 0.75rem;
+                    font-weight: bold;
+                    padding: 8px 4px;
+                }
+                .celda-hora-siace {
+                    font-size: 0.85rem;
+                    padding: 15px 5px;
+                }
+                .celda-datos-siace {
+                    padding: 10px 5px;
+                }
+                .materia-siace {
+                    color: #000080;
+                    font-weight: bold;
+                    font-size: 0.80rem;
+                    display: block;
+                    margin-bottom: 8px;
+                }
+                .texto-siace {
+                    color: #000;
+                    font-size: 0.75rem;
+                    display: block;
+                    font-weight: bold;
+                    margin-bottom: 4px;
+                }
+                .encabezado-siace {
+                    border-top: 3px solid #cc0000;
+                    padding-top: 10px;
+                    margin-bottom: 5px;
+                }
+            </style>
 </head>
 <body>
+
+<a href="#contenido" class="visually-hidden-focusable">Saltar al contenido principal</a>
 
 <div class="d-flex">
     <!-- Sidebar -->
@@ -84,7 +127,8 @@ if (isset($conn)) {
                 <li class="nav-item mt-3 mb-1"><small class="text-white-50 fw-bold px-3">SISTEMA</small></li>
                 <li class="nav-item"><a href="<?php echo $baseUrl; ?>usuarios" class="nav-link"><i class="bi bi-shield-lock-fill text-info me-2"></i> Gestión de Usuarios</a></li>
                 <li class="nav-item"><a href="<?php echo $baseUrl; ?>configuracion" class="nav-link"><i class="bi bi-gear-fill me-2"></i> Configuración</a></li>
-                <li class="nav-item"><a href="<?php echo $baseUrl; ?>configuracion" class="nav-link"><i class="bi bi-database-fill-down text-success me-2"></i> Respaldo (Backup)</a></li>
+                <li class="nav-item"><a href="<?php echo $baseUrl; ?>bitacora" class="nav-link"><i class="bi bi-journal-text me-2"></i> Bitácora</a></li>
+                <li class="nav-item"><a href="<?php echo $baseUrl; ?>ayuda" class="nav-link"><i class="bi bi-question-circle-fill me-2"></i> Ayuda</a></li>
                 <?php endif; ?>
             </ul>
         </div>
@@ -122,4 +166,4 @@ if (isset($conn)) {
         </nav>
 
         <!-- Contenido Dinámico de la Página -->
-        <div class="p-4 flex-grow-1 overflow-auto">
+        <div id="contenido" tabindex="-1" class="p-4 flex-grow-1 overflow-auto">

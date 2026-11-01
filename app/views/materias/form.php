@@ -1,9 +1,8 @@
 <?php
-// app/views/materias/form.php — Formulario compartido nuevo/editar.
-// Migrado de modules/materias/nuevo.php y editar.php.
-// $modo: 'nuevo' | 'editar'. $datos: fila de la materia (modo editar).
 $es_nuevo = ($modo === 'nuevo');
 $form_action = $es_nuevo ? $this->url('materias/nuevo') : $this->url('materias/editar', ['id' => $id]);
+$todas = isset($todas) ? $todas : [];
+$seleccionadas = isset($seleccionadas) ? $seleccionadas : [];
 ?>
 <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
     <h2 class="fw-bold mb-0 text-dark">
@@ -24,12 +23,13 @@ $form_action = $es_nuevo ? $this->url('materias/nuevo') : $this->url('materias/e
                 <?php if($success): ?><div class="alert alert-success" role="alert"><?php echo $success; ?></div><?php endif; ?>
 
                 <form action="<?= $form_action; ?>" method="POST">
+    <?= csrf_field() ?>
                     <div class="mb-3">
                         <label class="form-label fw-bold"><?= $es_nuevo ? 'Código Oficial (Ej: CON-221)' : 'Código Oficial'; ?></label>
                         <!-- PUNTOS 12 Y 13: PATTERN ALFANUMÉRICO Y GUIONES -->
                         <input type="text" name="codigo" class="form-control"
                                value="<?= $es_nuevo ? '' : htmlspecialchars($datos['codigo']); ?>"
-                               pattern="[a-zA-Z0-9\-]+" title="Solo letras, números y guiones. Ej: CON-221"
+                               pattern="[a-zA-Z0-9\-]+" data-bs-toggle="tooltip" data-bs-placement="top" title="Solo letras, números y guiones. Ej: CON-221"
                                aria-label="<?= $es_nuevo ? 'Ingresar código de materia' : 'Editar código de materia'; ?>" required>
                     </div>
                     <div class="mb-3">
@@ -37,16 +37,14 @@ $form_action = $es_nuevo ? $this->url('materias/nuevo') : $this->url('materias/e
                         <!-- PUNTOS 12 Y 13: CLASE solo-letras -->
                         <input type="text" name="nombre" class="form-control solo-letras"
                                value="<?= $es_nuevo ? '' : htmlspecialchars($datos['nombre']); ?>"
-                               pattern="[a-zA-ZáéíóúÁÉÍÓÚñÑ\s\.]+" title="Solo se permiten letras, espacios y puntos."
+                               pattern="[a-zA-ZáéíóúÁÉÍÓÚñÑ\s\.]+" data-bs-toggle="tooltip" data-bs-placement="top" title="Solo se permiten letras, espacios y puntos."
                                aria-label="<?= $es_nuevo ? 'Ingresar nombre de la materia' : 'Editar nombre de la materia'; ?>" required>
                     </div>
                     <div class="row mb-4">
                         <div class="col-md-6">
                             <label class="form-label fw-bold">Trayecto</label>
                             <select name="trayecto" class="form-select" aria-label="<?= $es_nuevo ? 'Seleccionar trayecto' : 'Editar trayecto de la materia'; ?>" required>
-                                <?php if ($es_nuevo): ?>
-                                    <option value="" disabled selected>Seleccione...</option>
-                                <?php endif; ?>
+                                <option value="" disabled <?= $es_nuevo ? 'selected' : ''; ?>>Seleccione...</option>
                                 <option value="0" <?= (!$es_nuevo && $datos['trayecto'] == 0) ? 'selected' : ''; ?>>Trayecto Inicial</option>
                                 <option value="1" <?= (!$es_nuevo && $datos['trayecto'] == 1) ? 'selected' : ''; ?>>Trayecto 1</option>
                                 <option value="2" <?= (!$es_nuevo && $datos['trayecto'] == 2) ? 'selected' : ''; ?>>Trayecto 2</option>
@@ -62,6 +60,20 @@ $form_action = $es_nuevo ? $this->url('materias/nuevo') : $this->url('materias/e
                                    min="1" max="10"
                                    aria-label="<?= $es_nuevo ? 'Ingresar horas semanales' : 'Editar horas semanales'; ?>" required>
                         </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">Prelaciones (materias que se deben aprobar antes)</label>
+                        <?php if (empty($todas)): ?>
+                            <p class="text-muted small mb-0">No hay otras materias registradas.</p>
+                        <?php else: ?>
+                            <?php foreach($todas as $t): ?>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="prelaciones[]" value="<?= $t['id']; ?>" id="pre<?= $t['id']; ?>" <?= in_array($t['id'], $seleccionadas) ? 'checked' : ''; ?>>
+                                    <label class="form-check-label" for="pre<?= $t['id']; ?>"><?= htmlspecialchars($t['nombre']); ?></label>
+                                </div>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
                     </div>
 
                     <?php if ($es_nuevo): ?>

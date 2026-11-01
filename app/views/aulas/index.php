@@ -1,6 +1,4 @@
 <?php
-// app/views/aulas/index.php — Aulas y espacios.
-// Migrada de modules/aulas/index.php.
 $es_admin = (isset($_SESSION['rol']) && strtolower($_SESSION['rol']) == 'administrador');
 ?>
 <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
@@ -20,13 +18,30 @@ $es_admin = (isset($_SESSION['rol']) && strtolower($_SESSION['rol']) == 'adminis
     </div>
 <?php endif; ?>
 
+<form method="GET" action="<?= $this->url('aulas'); ?>" class="row g-2 mb-3 area-no-imprimir align-items-end">
+    <div class="col-md-3">
+        <label class="form-label fw-bold small mb-1">Estado</label>
+        <select name="estado" class="form-select shadow-sm" onchange="this.form.submit()" aria-label="Filtrar por estado">
+            <option value="">Todas</option>
+            <option value="OPERATIVA" <?= (($filtro_estado ?? '') == 'OPERATIVA') ? 'selected' : ''; ?>>Operativas</option>
+            <option value="INOPERATIVA" <?= (($filtro_estado ?? '') == 'INOPERATIVA') ? 'selected' : ''; ?>>Inoperativas</option>
+        </select>
+    </div>
+    <div class="col-md-3">
+        <a href="<?= $this->url('aulas'); ?>" class="btn btn-outline-secondary w-100">Limpiar filtros</a>
+    </div>
+    <div class="col-md-6 text-md-end">
+        <small class="text-muted">Mostrando <b><?= count($aulas); ?></b> registro(s)</small>
+    </div>
+</form>
+
 <div class="row mb-3 area-no-imprimir">
     <div class="col-md-5 ms-auto">
         <div class="input-group shadow-sm">
             <span class="input-group-text bg-white border-end-0 text-danger">
                 <i class="bi bi-search"></i>
             </span>
-            <input type="text" id="buscadorGeneral" class="form-control border-start-0" placeholder="Buscar por código, capacidad o estado..." aria-label="Buscar en la tabla de aulas">
+            <input type="text" id="buscadorGeneral" class="form-control border-start-0" placeholder="Buscar por código, capacidad, estado o recursos..." aria-label="Buscar en la tabla de aulas">
         </div>
     </div>
 </div>
@@ -39,6 +54,7 @@ $es_admin = (isset($_SESSION['rol']) && strtolower($_SESSION['rol']) == 'adminis
                     <tr>
                         <th>Código</th>
                         <th>Capacidad</th>
+                        <th>Recursos</th>
                         <th>Estado</th>
                         <?php if($es_admin): ?><th>Acciones</th><?php endif; ?>
                     </tr>
@@ -48,6 +64,13 @@ $es_admin = (isset($_SESSION['rol']) && strtolower($_SESSION['rol']) == 'adminis
                     <tr>
                         <td class="fw-bold text-dark"><?php echo htmlspecialchars($a['codigo']); ?></td>
                         <td><i class="bi bi-people-fill me-1 text-muted"></i> <?php echo $a['capacidad']; ?> alumnos</td>
+                        <td class="text-start">
+                            <?php if (!empty($a['recursos'])): ?>
+                                <?php echo htmlspecialchars($a['recursos']); ?>
+                            <?php else: ?>
+                                <span class="text-muted">—</span>
+                            <?php endif; ?>
+                        </td>
                         <td>
                             <?php if($a['estado'] == 'OPERATIVA'): ?>
                                 <span class="badge bg-success">Operativa</span>
@@ -60,7 +83,7 @@ $es_admin = (isset($_SESSION['rol']) && strtolower($_SESSION['rol']) == 'adminis
                             <div class="btn-group">
                                 <!-- PUNTO 12: ETIQUETAS DINÁMICAS -->
                                 <a href="<?= $this->url('aulas/editar', ['id' => $a['id']]); ?>" class="btn btn-sm btn-outline-primary" aria-label="Editar aula <?php echo htmlspecialchars($a['codigo']); ?>"><i class="bi bi-pencil"></i></a>
-                                <a href="<?= $this->url('aulas/eliminar', ['id' => $a['id']]); ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('¿Borrar aula?');" aria-label="Eliminar aula <?php echo htmlspecialchars($a['codigo']); ?>"><i class="bi bi-trash"></i></a>
+                                <form method="POST" action="<?= $this->url('aulas/eliminar', ['id' => $a['id']]); ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('¿Borrar aula?');" aria-label="Eliminar aula <?php echo htmlspecialchars($a['codigo']); ?>" style="display:inline;"><?= csrf_field() ?><button type="submit"><i class="bi bi-trash"></i></button></form>
                             </div>
                         </td>
                         <?php endif; ?>

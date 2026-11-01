@@ -1,6 +1,4 @@
 <?php
-// app/views/auth/recuperar_clave.php — Página completa (sin header/footer).
-// Migrada de recuperar_clave.php (3 pasos).
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -8,8 +6,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Recuperar Contraseña - SIGEHO-CONT</title>
+    <!-- Favicon -->
+    <link rel="icon" href="<?php echo $baseUrl; ?>assets/img/logo_conta.jpeg" type="image/jpeg">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
     <style>
         body {
             background: linear-gradient(135deg, #0a2a4d 0%, #1e5799 100%);
@@ -64,12 +65,16 @@
         <?php if ($step == 1): ?>
             <p class="small text-secondary mb-3"><strong>Paso 1:</strong> Ingrese su correo institucional registrado.</p>
             <form action="<?= $this->url('auth/recuperar'); ?>" method="POST">
+    <?= csrf_field() ?>
                 <input type="hidden" name="action" value="verificar_correo">
                 <div class="mb-3">
                     <div class="input-group">
                         <span class="input-group-text"><i class="bi bi-envelope"></i></span>
                         <input type="email" name="correo" class="form-control" placeholder="usuario@uptag.edu.ve" required>
                     </div>
+                </div>
+                <div class="mb-3 d-flex justify-content-center">
+                    <div class="cf-turnstile" data-sitekey="0x4AAAAAAFsJzSyLkF189kmT"></div>
                 </div>
                 <div class="d-grid">
                     <button type="submit" class="btn btn-primary rounded-3" style="background:#0a2a4d; border:none;">Verificar Correo</button>
@@ -79,6 +84,7 @@
         <?php elseif ($step == 2): ?>
             <p class="small text-secondary mb-3"><strong>Paso 2:</strong> Responda sus preguntas de seguridad.</p>
             <form action="<?= $this->url('auth/recuperar'); ?>" method="POST" autocomplete="off">
+    <?= csrf_field() ?>
                 <input type="hidden" name="action" value="verificar_respuestas">
 
                 <div class="mb-3">
@@ -93,6 +99,9 @@
                     <label class="form-label small fw-bold text-secondary">¿Ciudad donde naciste?</label>
                     <input type="text" name="r3" class="form-control" placeholder="Escriba la respuesta" required>
                 </div>
+                <div class="mb-3 d-flex justify-content-center">
+                    <div class="cf-turnstile" data-sitekey="0x4AAAAAAFsJzSyLkF189kmT"></div>
+                </div>
                 <div class="d-grid">
                     <button type="submit" class="btn btn-primary rounded-3" style="background:#0a2a4d; border:none;">Validar Respuestas</button>
                 </div>
@@ -101,6 +110,7 @@
         <?php elseif ($step == 3): ?>
             <p class="small text-secondary mb-3"><strong>Paso 3:</strong> Cree su nueva contraseña. (Mínimo 16 caracteres)</p>
             <form action="<?= $this->url('auth/recuperar'); ?>" method="POST">
+    <?= csrf_field() ?>
                 <input type="hidden" name="action" value="actualizar_clave">
                 <div class="mb-3">
                     <label class="form-label small fw-bold text-secondary">Nueva Contraseña</label>
@@ -108,6 +118,9 @@
                         <span class="input-group-text"><i class="bi bi-lock"></i></span>
                         <input type="password" name="nueva_clave" class="form-control" placeholder="••••••••••••••••" required minlength="16">
                     </div>
+                </div>
+                <div class="mb-3 d-flex justify-content-center">
+                    <div class="cf-turnstile" data-sitekey="0x4AAAAAAFsJzSyLkF189kmT"></div>
                 </div>
                 <div class="d-grid">
                     <button type="submit" class="btn btn-success rounded-3 fw-bold">Guardar Nueva Contraseña</button>

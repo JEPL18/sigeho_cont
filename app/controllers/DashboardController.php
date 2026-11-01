@@ -1,7 +1,4 @@
 <?php
-// app/controllers/DashboardController.php
-// Lógica del panel principal: KPIs, log de choques y "algoritmo SIACE".
-
 class DashboardController extends Controller {
 
     public function index() {
@@ -14,13 +11,11 @@ class DashboardController extends Controller {
         $log      = new LogChoque($this->conn);
         $config   = new Configuracion($this->conn);
 
-        // --- LÓGICA PARA VACIAR EL LOG DE CHOQUES ---
-        if (isset($_GET['action']) && $_GET['action'] == 'clear_logs' && strtolower($_SESSION['rol']) == 'administrador') {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] == 'clear_logs' && strtolower($_SESSION['rol']) == 'administrador') {
             $log->vaciar();
             $this->redirect('dashboard');
         }
 
-        // --- CONSULTAS PARA LOS INDICADORES (KPIs) ---
         $tot_prof_activos      = $profesor->contarActivos();
         $tot_prof_inactivos    = $profesor->contarInactivos();
         $tot_sec               = $seccion->contar();
@@ -29,17 +24,16 @@ class DashboardController extends Controller {
         $tot_choques           = $log->contar();
         $logs                 = $log->recientes(50);
 
-        // OBTENER LAPSO ACADÉMICO PARA EL ENCABEZADO
         $lapso_actual = $config->fechaInicioLapso();
 
-        // --- LÓGICA PARA CARGAR EL HORARIO (ALGORITMO SIACE) ---
         $secciones = $seccion->listaParaDashboard();
 
         $seccion_seleccionada = isset($_GET['seccion_id']) ? (int)$_GET['seccion_id'] : null;
         $turno_seleccionado = isset($_GET['turno']) ? strtoupper($_GET['turno']) : '';
 
-        $tramos_tiempo = [];
-        $matriz_horario = [];
+        $segmentos = [];
+        $celdas = [];
+        $ocupadas = [];
         $datos_seccion = null;
 
         if ($seccion_seleccionada) {
@@ -47,25 +41,38 @@ class DashboardController extends Controller {
 
             $filas = $horario->bloquesPorSeccion($seccion_seleccionada, $turno_seleccionado);
 
+            $cortes = [];
             foreach ($filas as $row) {
-                // Formato exacto de hora del SIACE (ej: 12:30pm -- 01:15pm)
-                $inicio_str = strtolower(date("h:ia", strtotime($row['hora_inicio'])));
-                $fin_str = strtolower(date("h:ia", strtotime($row['hora_fin'])));
-                $rango = $inicio_str . " -- " . $fin_str;
-
-                $hora_cruda = $row['hora_inicio'];
-
-                // Guardar el rango de horas como llave principal de las filas
-                if (!isset($tramos_tiempo[$hora_cruda])) {
-                    $tramos_tiempo[$hora_cruda] = $rango;
-                }
-
-                // Ubicar la clase en su coordenada exacta [Hora][Día]
-                $dia = $row['dia_semana'];
-                $matriz_horario[$hora_cruda][$dia] = $row;
+                $cortes[$row['hora_inicio']] = true;
+                $cortes[$row['hora_fin']] = true;
             }
-            // Ordenar las filas cronológicamente
-            ksort($tramos_tiempo);
+            $cortes = array_keys($cortes);
+            sort($cortes, SORT_STRING);
+            $indice_corte = array_flip($cortes);
+
+            for ($i = 0; $i + 1 < count($cortes); $i++) {
+                $segmentos[] = [
+                    'inicio' => $cortes[$i],
+                    'fin'    => $cortes[$i + 1],
+                    'texto'  => strtolower(date("h:ia", strtotime($cortes[$i]))) . " -- " . strtolower(date("h:ia", strtotime($cortes[$i + 1]))),
+                ];
+            }
+
+            foreach ($filas as $row) {
+                $i0 = $indice_corte[$row['hora_inicio']] ?? null;
+                $i1 = $indice_corte[$row['hora_fin']] ?? null;
+                if ($i0 === null || $i1 === null || $i1 <= $i0) {
+                    continue;
+                }
+                $dia = $row['dia_semana'];
+                if (isset($celdas[$i0][$dia]) || isset($ocupadas[$i0][$dia])) {
+                    continue;
+                }
+                $celdas[$i0][$dia] = ['rowspan' => $i1 - $i0, 'clase' => $row];
+                for ($j = $i0 + 1; $j < $i1; $j++) {
+                    $ocupadas[$j][$dia] = true;
+                }
+            }
         }
 
         $this->render('dashboard/index', [
@@ -80,8 +87,9 @@ class DashboardController extends Controller {
             'secciones'              => $secciones,
             'seccion_seleccionada'   => $seccion_seleccionada,
             'turno_seleccionado'     => $turno_seleccionado,
-            'tramos_tiempo'          => $tramos_tiempo,
-            'matriz_horario'         => $matriz_horario,
+            'segmentos'              => $segmentos,
+            'celdas'                 => $celdas,
+            'ocupadas'               => $ocupadas,
             'datos_seccion'          => $datos_seccion,
         ]);
     }
