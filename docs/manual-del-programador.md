@@ -250,7 +250,7 @@ sigeho_cont_mvc/
 │       ├── GoogleAuthenticator.php <- TOTP (generar secreto, verificar código)
 │       └── PHPMailer/           <- Librería vendorizada (Exception, SMTP, PHPMailer)
 ├── scripts/                 <- Utilidades CLI (ver capítulo 14)
-├── sql/                     <- Esquema y migraciones (ver capítulos 9 y 13)
+├── sql/                     <- Esquema fresco (ver capítulos 9 y 13)
 └── tests/                   <- Suite de pruebas de modelos (ver capítulo 15)
 ```
 
@@ -942,8 +942,8 @@ repositorio.
    el código viejo. Archivos sueltos individuales no exigen reinicio.
 4. **Migraciones faltantes.** Revisar en phpMyAdmin qué tiene ya la base
    (tablas pivote, columna `recursos` en aulas, valor `asistente` en el
-   ENUM de rol) y ejecutar **solo** los archivos de migración que
-   falten (ver capítulo 13.3). Nunca reimportar el esquema completo sobre
+   ENUM de rol) y, si se dispone de ellos (históricos, ver capítulo 13.3),
+   ejecutar **solo** los que falten. Nunca reimportar el esquema completo sobre
    una base con datos reales.
 5. **Verificar.** Iniciar sesión normal y con 2FA, y revisar que el
    panel muestra los datos reales.
@@ -984,6 +984,8 @@ Particularidades verificadas de este tipo de hosting:
   innecesarios en `htdocs`.
 
 ### 13.3. Migraciones (`sql/`)
+
+Las migraciones históricas de versiones anteriores ya no se distribuyen en el repo: el esquema fresco (`sigeho_cont_db.sql`) ya incluye todas estas tablas y columnas. La tabla siguiente queda como referencia de lo aplicado a instalaciones existentes; los archivos se conservan en el historial de Git.
 
 | Archivo | Contenido | Idempotente |
 |---|---|---|
@@ -1183,8 +1185,7 @@ de archivos lo borran solos al extraer; si no, borrarlo a mano).
 - Al añadir una vista nueva, mantener el hábito de escapar toda salida
   con `htmlspecialchars` y de exigir CSRF en todo POST (el control
   central ya lo hace, pero el campo oculto debe estar en el formulario).
-- Al añadir una columna o tabla, añadir su migración a `sql/` indicando
-  si es idempotente (ver capítulo 13.3) y actualizar este manual.
+- Al añadir una columna o tabla, actualizar el esquema fresco `sql/sigeho_cont_db.sql` (el repo distribuye solo el esquema completo, no migraciones) y actualizar este manual.
 
 ## 17. Solución de problemas técnicos frecuentes
 
@@ -1269,7 +1270,7 @@ en el código el 2026-10-31:
 | Clase base, permisos, bitácora | `app/core/Controller.php` |
 | Conexión, MASTER_KEY, CSRF, cifrado | `app/config/database.php` |
 | Esquema completo (instalación limpia) | `sql/sigeho_cont_db.sql` |
-| Migraciones | `sql/migracion_*.sql` |
+| Migraciones históricas | Historial de Git (ver capítulo 13.3) |
 | Rotación de clave maestra | `scripts/rotar_master_key.php` |
 | Sugerencias por consola | `scripts/sugerir_secciones.php`, `scripts/sugerir_huecos.php` |
 | Pruebas de modelos | `tests/suite.php`, `tests/README.md` |
