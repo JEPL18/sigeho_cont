@@ -66,11 +66,10 @@ con controlador frontal (`public/index.php`).
 ## Instalación
 
 1. Clona el repositorio en tu servidor o en `htdocs`.
-2. Crea la base de datos e importa **solo**
-   `sql/sigeho_cont_db.sql` (instalación fresca, 14 tablas). Los
-   archivos `sql/migracion_*.sql` son solo para instalaciones
-   existentes que aún no tienen esas tablas; no reimportes el esquema
-   completo sobre una base con datos reales.
+2. Crea la base de datos e importa
+   `sql/sigeho_cont_db.sql` (instalación fresca, 14 tablas). El repo
+   distribuye solo el esquema completo; no reimportes el esquema
+   sobre una base con datos reales.
 3. Ajusta `app/config/database.php` con tu host, base, usuario y
    clave.
 4. **Crea `app/config/master_key.php` (obligatorio).** Son dos
@@ -137,7 +136,7 @@ public/
   .htaccess     URL bonitas + caché de estáticos + compresión
   assets/       css, js, imágenes
 scripts/        Sugerencias y rotación de clave (solo consola)
-sql/            Esquema fresco + migraciones idempotentes y no idempotentes
+sql/            Esquema fresco (14 tablas)
 tests/          Suite de pruebas de consola (20 pruebas)
 docs/           Manual de usuario y manual del programador
 ```
