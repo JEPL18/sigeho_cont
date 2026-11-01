@@ -1,6 +1,4 @@
 <?php
-// app/views/materias/index.php — Malla curricular.
-// Migrada de modules/materias/index.php.
 $es_admin = (isset($_SESSION['rol']) && strtolower($_SESSION['rol']) == 'administrador');
 ?>
 <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
@@ -19,6 +17,31 @@ $es_admin = (isset($_SESSION['rol']) && strtolower($_SESSION['rol']) == 'adminis
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar alerta"></button>
     </div>
 <?php endif; ?>
+
+<?php if(isset($_GET['msg']) && $_GET['msg'] == 'error_prelacion'): ?>
+    <div class="alert alert-danger alert-dismissible fade show shadow-sm mb-4" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i> <strong>Acción denegada:</strong> No se puede eliminar esta materia porque es prelación de otra materia.
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar alerta"></button>
+    </div>
+<?php endif; ?>
+
+<form method="GET" action="<?= $this->url('materias'); ?>" class="row g-2 mb-3 area-no-imprimir align-items-end">
+    <div class="col-md-3">
+        <label class="form-label fw-bold small mb-1">Trayecto</label>
+        <select name="trayecto" class="form-select shadow-sm" onchange="this.form.submit()" aria-label="Filtrar por trayecto">
+            <option value="">Todos</option>
+            <?php for ($t = 1; $t <= 4; $t++): ?>
+                <option value="<?= $t; ?>" <?= (($filtro_trayecto ?? 0) == $t) ? 'selected' : ''; ?>>Trayecto <?= $t; ?></option>
+            <?php endfor; ?>
+        </select>
+    </div>
+    <div class="col-md-3">
+        <a href="<?= $this->url('materias'); ?>" class="btn btn-outline-secondary w-100">Limpiar filtros</a>
+    </div>
+    <div class="col-md-6 text-md-end">
+        <small class="text-muted">Mostrando <b><?= count($materias); ?></b> registro(s)</small>
+    </div>
+</form>
 
 <div class="row mb-3 area-no-imprimir">
     <div class="col-md-5 ms-auto">
@@ -43,6 +66,7 @@ $es_admin = (isset($_SESSION['rol']) && strtolower($_SESSION['rol']) == 'adminis
                         <th>Unidad Curricular</th>
                         <th>Trayecto</th>
                         <th>Horas Semanales</th>
+                        <th>Prelaciones</th>
                         <?php if($es_admin): ?>
                             <th>Acciones</th>
                         <?php endif; ?>
@@ -59,13 +83,20 @@ $es_admin = (isset($_SESSION['rol']) && strtolower($_SESSION['rol']) == 'adminis
                             </span>
                         </td>
                         <td><i class="bi bi-clock-history me-1"></i><?php echo $m['horas_semanales']; ?></td>
+                        <td class="text-start">
+                            <?php if (!empty($prelaciones_por_materia[$m['id']])): ?>
+                                <?php echo htmlspecialchars(implode(', ', $prelaciones_por_materia[$m['id']])); ?>
+                            <?php else: ?>
+                                <span class="text-muted">—</span>
+                            <?php endif; ?>
+                        </td>
 
                         <?php if($es_admin): ?>
                         <td>
                             <div class="btn-group">
                                 <!-- PUNTO 12: ARIA-LABEL DINÁMICO -->
                                 <a href="<?= $this->url('materias/editar', ['id' => $m['id']]); ?>" class="btn btn-sm btn-outline-primary" aria-label="Editar materia <?php echo htmlspecialchars($m['nombre']); ?>" title="Editar"><i class="bi bi-pencil"></i></a>
-                                <a href="<?= $this->url('materias/eliminar', ['id' => $m['id']]); ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('¿Borrar materia?');" aria-label="Eliminar materia <?php echo htmlspecialchars($m['nombre']); ?>" title="Eliminar"><i class="bi bi-trash"></i></a>
+                                <form method="POST" action="<?= $this->url('materias/eliminar', ['id' => $m['id']]); ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('¿Borrar materia?');" aria-label="Eliminar materia <?php echo htmlspecialchars($m['nombre']); ?>" style="display:inline;"><?= csrf_field() ?><button type="submit" title="Eliminar"><i class="bi bi-trash"></i></button></form>
                             </div>
                         </td>
                         <?php endif; ?>

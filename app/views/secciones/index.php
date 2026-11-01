@@ -1,15 +1,18 @@
 <?php
-// app/views/secciones/index.php — Gestión de secciones.
-// Migrada de modules/secciones/index.php.
 $es_admin = (isset($_SESSION['rol']) && strtolower($_SESSION['rol']) == 'administrador');
 ?>
 <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
     <h2 class="fw-bold mb-0"><i class="bi bi-people text-danger me-2"></i> Gestión de Secciones</h2>
 
     <?php if($es_admin): ?>
-        <a href="<?= $this->url('secciones/nuevo'); ?>" class="btn btn-danger" style="background-color: #8B1A1A;" aria-label="Registrar nueva sección">
-            <i class="bi bi-plus-lg"></i> Registrar Sección
-        </a>
+        <div class="d-flex gap-2">
+            <a href="<?= $this->url('secciones/sugerir'); ?>" class="btn btn-outline-danger" aria-label="Sugerir secciones automáticamente">
+                <i class="bi bi-lightbulb"></i> Sugerir Secciones
+            </a>
+            <a href="<?= $this->url('secciones/nuevo'); ?>" class="btn btn-danger" style="background-color: #8B1A1A;" aria-label="Registrar nueva sección">
+                <i class="bi bi-plus-lg"></i> Registrar Sección
+            </a>
+        </div>
     <?php endif; ?>
 </div>
 
@@ -19,6 +22,40 @@ $es_admin = (isset($_SESSION['rol']) && strtolower($_SESSION['rol']) == 'adminis
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar alerta"></button>
     </div>
 <?php endif; ?>
+
+<?php if(isset($_GET['msg']) && $_GET['msg'] == 'secciones_creadas'): ?>
+    <div class="alert alert-success alert-dismissible fade show shadow-sm mb-4" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i> Secciones sugeridas creadas correctamente<?= isset($_GET['n']) ? ' (' . (int)$_GET['n'] . ' secciones).' : '.'; ?>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar alerta"></button>
+    </div>
+<?php endif; ?>
+
+<form method="GET" action="<?= $this->url('secciones'); ?>" class="row g-2 mb-3 area-no-imprimir align-items-end">
+    <div class="col-md-3">
+        <label class="form-label fw-bold small mb-1">Trayecto</label>
+        <select name="trayecto" class="form-select shadow-sm" onchange="this.form.submit()" aria-label="Filtrar por trayecto">
+            <option value="">Todos</option>
+            <?php for ($t = 1; $t <= 4; $t++): ?>
+                <option value="<?= $t; ?>" <?= (($filtro_trayecto ?? 0) == $t) ? 'selected' : ''; ?>>Trayecto <?= $t; ?></option>
+            <?php endfor; ?>
+        </select>
+    </div>
+    <div class="col-md-3">
+        <label class="form-label fw-bold small mb-1">Trimestre</label>
+        <select name="trimestre" class="form-select shadow-sm" onchange="this.form.submit()" aria-label="Filtrar por trimestre">
+            <option value="">Todos</option>
+            <?php for ($t = 1; $t <= 3; $t++): ?>
+                <option value="<?= $t; ?>" <?= (($filtro_trimestre ?? 0) == $t) ? 'selected' : ''; ?>>Trimestre <?= $t; ?></option>
+            <?php endfor; ?>
+        </select>
+    </div>
+    <div class="col-md-2">
+        <a href="<?= $this->url('secciones'); ?>" class="btn btn-outline-secondary w-100">Limpiar</a>
+    </div>
+    <div class="col-md-4 text-md-end">
+        <small class="text-muted">Mostrando <b><?= count($secciones); ?></b> registro(s)</small>
+    </div>
+</form>
 
 <div class="row mb-3 area-no-imprimir">
     <div class="col-md-5 ms-auto">
@@ -63,7 +100,7 @@ $es_admin = (isset($_SESSION['rol']) && strtolower($_SESSION['rol']) == 'adminis
                             <div class="btn-group">
                                 <!-- PUNTO 12: aria-label dinámico -->
                                 <a href="<?= $this->url('secciones/editar', ['id' => $s['id']]); ?>" class="btn btn-sm btn-outline-primary" aria-label="Editar sección <?php echo htmlspecialchars($s['codigo']); ?>" title="Editar"><i class="bi bi-pencil"></i></a>
-                                <a href="<?= $this->url('secciones/eliminar', ['id' => $s['id']]); ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('¿Borrar sección?');" aria-label="Eliminar sección <?php echo htmlspecialchars($s['codigo']); ?>" title="Eliminar"><i class="bi bi-trash"></i></a>
+                                <form method="POST" action="<?= $this->url('secciones/eliminar', ['id' => $s['id']]); ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('¿Borrar sección?');" aria-label="Eliminar sección <?php echo htmlspecialchars($s['codigo']); ?>" style="display:inline;"><?= csrf_field() ?><button type="submit" title="Eliminar"><i class="bi bi-trash"></i></button></form>
                             </div>
                         </td>
                         <?php endif; ?>

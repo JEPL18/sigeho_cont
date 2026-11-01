@@ -1,0 +1,5 @@
+CREATE TABLE IF NOT EXISTS intentos_ip (
+    ip VARCHAR(45) NOT NULL PRIMARY KEY,
+    intentos INT NOT NULL DEFAULT 0,
+    ultimo_intento DATETIME NOT NULL
+);

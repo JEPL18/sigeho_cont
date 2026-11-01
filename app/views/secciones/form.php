@@ -1,7 +1,4 @@
 <?php
-// app/views/secciones/form.php — Formulario compartido nuevo/editar.
-// Migrado de modules/secciones/nuevo.php y editar.php.
-// $modo: 'nuevo' | 'editar'. $datos: fila de la sección (modo editar).
 $es_nuevo = ($modo === 'nuevo');
 $form_action = $es_nuevo ? $this->url('secciones/nuevo') : $this->url('secciones/editar', ['id' => $id]);
 ?>
@@ -24,21 +21,20 @@ $form_action = $es_nuevo ? $this->url('secciones/nuevo') : $this->url('secciones
                 <?php if($success): ?><div class="alert alert-success" role="alert"><?php echo $success; ?></div><?php endif; ?>
 
                 <form action="<?= $form_action; ?>" method="POST">
+    <?= csrf_field() ?>
                     <div class="mb-3">
                         <label class="form-label fw-bold">Código de Sección (Ej: SECC-34)</label>
                         <!-- PUNTO 13: PATTERN PARA LETRAS, NÚMEROS Y GUIONES -->
                         <input type="text" name="codigo" class="form-control"
                                value="<?= $es_nuevo ? '' : htmlspecialchars($datos['codigo']); ?>"
-                               pattern="[a-zA-Z0-9\-]+" title="Solo se permiten letras, números y guiones. Ej: SECC-34"
+                               pattern="[a-zA-Z0-9\-]+" data-bs-toggle="tooltip" data-bs-placement="top" title="Solo se permiten letras, números y guiones. Ej: SECC-34"
                                aria-label="<?= $es_nuevo ? 'Ingresar código de sección' : 'Editar código de sección'; ?>" required>
                     </div>
                     <div class="row mb-4">
                         <div class="col-md-4">
                             <label class="form-label fw-bold">Trayecto</label>
                             <select name="trayecto" class="form-select" aria-label="<?= $es_nuevo ? 'Seleccionar trayecto' : 'Editar trayecto de la sección'; ?>" required>
-                                <?php if ($es_nuevo): ?>
-                                    <option value="" disabled selected>Seleccione...</option>
-                                <?php endif; ?>
+                                <option value="" disabled <?= $es_nuevo ? 'selected' : ''; ?>>Seleccione...</option>
                                 <option value="0" <?= (!$es_nuevo && $datos['trayecto'] == 0) ? 'selected' : ''; ?>>Trayecto Inicial</option>
                                 <option value="1" <?= (!$es_nuevo && $datos['trayecto'] == 1) ? 'selected' : ''; ?>>Trayecto 1</option>
                                 <option value="2" <?= (!$es_nuevo && $datos['trayecto'] == 2) ? 'selected' : ''; ?>>Trayecto 2</option>

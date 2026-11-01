@@ -1,6 +1,4 @@
 <?php
-// app/views/auth/configurar_2fa.php — Activar/desactivar 2FA de la cuenta propia.
-// Migrada de configurar_2fa.php (usa header/footer: usuario autenticado).
 ?>
 <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
     <h2 class="fw-bold mb-0 text-dark"><i class="bi bi-shield-lock-fill text-danger me-2"></i> Seguridad: Autenticación 2FA</h2>
@@ -22,6 +20,11 @@
                     <p class="text-muted mb-4">Tu cuenta está protegida con autenticación de dos factores. El sistema te pedirá un código de tu aplicación cada vez que inicies sesión o ejecutes acciones críticas.</p>
 
                     <form action="<?= $this->url('auth/configurar2fa'); ?>" method="POST">
+    <?= csrf_field() ?>
+                        <div class="mb-3 w-50 mx-auto">
+                            <label class="form-label fw-bold">Para desactivar, ingresa tu código 2FA actual:</label>
+                            <input type="text" name="codigo" class="form-control text-center fw-bold tracking-widest" placeholder="123456" pattern="[0-9]{6}" maxlength="6" aria-label="Ingresar código de autenticación actual" required>
+                        </div>
                         <button type="submit" name="desactivar_2fa" class="btn btn-outline-danger fw-bold w-50" aria-label="Desactivar seguridad de dos factores" onclick="return confirm('¿Seguro que deseas desactivar esta capa de seguridad?');">
                             Desactivar 2FA
                         </button>
@@ -41,6 +44,7 @@
                     <hr class="w-75 mx-auto my-4">
 
                     <form action="<?= $this->url('auth/configurar2fa'); ?>" method="POST" class="w-75 mx-auto">
+    <?= csrf_field() ?>
                         <div class="mb-3">
                             <label class="form-label fw-bold">Ingresa el código de 6 dígitos de tu app:</label>
                             <input type="text" name="codigo" class="form-control form-control-lg text-center fw-bold tracking-widest" placeholder="123456" pattern="[0-9]{6}" maxlength="6" aria-label="Ingresar código de autenticación de 6 dígitos" required autofocus>

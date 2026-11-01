@@ -1,6 +1,4 @@
 <?php
-// app/models/Seccion.php — Consultas de la tabla `secciones`.
-
 class Seccion {
     protected $conn;
     public function __construct($conn) { $this->conn = $conn; }
@@ -8,6 +6,21 @@ class Seccion {
     public function all() {
         $sql = "SELECT * FROM secciones ORDER BY trayecto ASC, trimestre ASC, codigo ASC";
         return $this->conn->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function filtrar($trayecto = 0, $trimestre = 0) {
+        $trayecto = (int)$trayecto;
+        $trimestre = (int)$trimestre;
+        $cond = [];
+        $params = [];
+        if ($trayecto >= 1 && $trayecto <= 4) { $cond[] = "trayecto = ?"; $params[] = $trayecto; }
+        if ($trimestre >= 1 && $trimestre <= 3) { $cond[] = "trimestre = ?"; $params[] = $trimestre; }
+        if (empty($cond)) {
+            return $this->all();
+        }
+        $stmt = $this->conn->prepare("SELECT * FROM secciones WHERE " . implode(" AND ", $cond) . " ORDER BY trayecto ASC, trimestre ASC, codigo ASC");
+        $stmt->execute($params);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     public function find($id) {
@@ -52,5 +65,35 @@ class Seccion {
 
     public function contar() {
         return (int)$this->conn->query("SELECT COUNT(*) FROM secciones")->fetchColumn();
+    }
+
+    public function sugerirCantidad($matricula, $capacidad) {
+        $matricula = (int)$matricula;
+        $capacidad = (int)$capacidad;
+        if ($matricula <= 0 || $capacidad <= 0) {
+            return null;
+        }
+        $n = (int)ceil($matricula / $capacidad);
+        $base = (int)floor($matricula / $n);
+        $resto = $matricula - ($base * $n);
+        $distribucion = [];
+        for ($i = 0; $i < $n; $i++) {
+            $distribucion[] = $base + ($i < $resto ? 1 : 0);
+        }
+        return ['secciones' => $n, 'distribucion' => $distribucion];
+    }
+
+    public function crearSugeridas($distribucion, $trayecto, $trimestre, $prefijo) {
+        $creadas = [];
+        $n = 1;
+        foreach ($distribucion as $alumnos) {
+            do {
+                $codigo = $prefijo . '-' . str_pad($n, 2, '0', STR_PAD_LEFT);
+                $n++;
+            } while ($this->existeCodigo($codigo));
+            $this->create($codigo, $trayecto, $trimestre, $alumnos);
+            $creadas[] = $codigo . ' (' . $alumnos . ' alumnos)';
+        }
+        return $creadas;
     }
 }

@@ -1,7 +1,4 @@
 <?php
-// app/views/usuarios/form.php — Formulario compartido nuevo/editar.
-// Migrado de modules/usuarios/nuevo.php y editar.php.
-// $modo: 'nuevo' | 'editar'. $datos: fila del usuario (modo editar).
 $es_nuevo = ($modo === 'nuevo');
 $form_action = $es_nuevo ? $this->url('usuarios/nuevo') : $this->url('usuarios/editar', ['id' => $id]);
 ?>
@@ -24,13 +21,14 @@ $form_action = $es_nuevo ? $this->url('usuarios/nuevo') : $this->url('usuarios/e
                 <?php if($success): ?><div class="alert alert-success" role="alert"><?php echo $success; ?></div><?php endif; ?>
 
                 <form action="<?= $form_action; ?>" method="POST">
+    <?= csrf_field() ?>
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <label class="form-label fw-bold">Nombre del Personal</label>
                             <input type="text" name="nombre" class="form-control solo-letras"
                                    value="<?= $es_nuevo ? '' : htmlspecialchars($datos['nombre']); ?>"
                                    placeholder="<?= $es_nuevo ? 'Ej: Lcda. María Pérez' : ''; ?>"
-                                   pattern="[a-zA-ZáéíóúÁÉÍÓÚñÑ\s\.]+" title="Solo se permiten letras, espacios y puntos."
+                                   pattern="[a-zA-ZáéíóúÁÉÍÓÚñÑ\s\.]+" data-bs-toggle="tooltip" data-bs-placement="top" title="Solo se permiten letras, espacios y puntos."
                                    aria-label="<?= $es_nuevo ? 'Ingresar nombre del personal' : 'Editar nombre del personal'; ?>" required>
                         </div>
                         <div class="col-md-6">
@@ -46,13 +44,13 @@ $form_action = $es_nuevo ? $this->url('usuarios/nuevo') : $this->url('usuarios/e
                         <div class="col-md-6">
                             <?php if ($es_nuevo): ?>
                                 <label class="form-label fw-bold">Nivel de Permisos</label>
-                                <select name="rol" class="form-select" aria-label="Seleccionar nivel de permisos" required>
+                                <select name="rol" class="form-select" aria-label="Seleccionar nivel de permisos">
                                     <option value="Asistente">Asistente (Solo Lectura)</option>
                                     <option value="Administrador">Administrador (Control Total)</option>
                                 </select>
                             <?php else: ?>
                                 <label class="form-label fw-bold">Rol</label>
-                                <select name="rol" class="form-select" aria-label="Seleccionar nivel de permisos" required <?= ($id == $_SESSION['usuario_id']) ? 'disabled' : ''; ?>>
+                                <select name="rol" class="form-select" aria-label="Seleccionar nivel de permisos" <?= ($id == $_SESSION['usuario_id']) ? 'disabled' : ''; ?>>
                                     <option value="Asistente" <?= (strtolower($datos['rol']) == 'asistente') ? 'selected' : ''; ?>>Asistente</option>
                                     <option value="Administrador" <?= (strtolower($datos['rol']) == 'administrador') ? 'selected' : ''; ?>>Administrador</option>
                                 </select>
@@ -72,7 +70,7 @@ $form_action = $es_nuevo ? $this->url('usuarios/nuevo') : $this->url('usuarios/e
                         </div>
                     </div>
 
-                    <h5 class="fw-bold text-danger border-bottom pb-2 mb-3"><i class="bi bi-shield-lock-fill"></i> Sistema de Recuperación (3 Pasos)</h5>
+                    <h3 class="fw-bold text-danger border-bottom pb-2 mb-3"><i class="bi bi-shield-lock-fill"></i> Sistema de Recuperación (3 Pasos)</h3>
 
                     <div class="row mb-3 bg-light p-3 rounded align-items-center">
                         <div class="col-md-6">
@@ -110,6 +108,18 @@ $form_action = $es_nuevo ? $this->url('usuarios/nuevo') : $this->url('usuarios/e
                                    <?= $es_nuevo ? 'required' : ''; ?>>
                         </div>
                     </div>
+
+                    <?php if (!$es_nuevo && ($admin_2fa_activo ?? 0) == 1): ?>
+                        <div class="row mb-4 bg-warning bg-opacity-10 p-3 rounded align-items-center border border-warning">
+                            <div class="col-md-6">
+                                <span class="fw-bold text-dark"><i class="bi bi-phone-vibrate text-warning me-1"></i> Código 2FA del administrador</span>
+                                <small class="d-block text-muted">Solo se exige si cambias la contraseña o las respuestas de seguridad de esta cuenta.</small>
+                            </div>
+                            <div class="col-md-6">
+                                <input type="text" name="codigo_2fa" class="form-control text-center fw-bold" placeholder="123456" pattern="[0-9]{6}" maxlength="6" aria-label="Código 2FA del administrador">
+                            </div>
+                        </div>
+                    <?php endif; ?>
 
                     <?php if ($es_nuevo): ?>
                         <button type="submit" class="btn btn-info text-white w-100 fw-bold fs-5" aria-label="Guardar nuevo usuario"><i class="bi bi-check-circle"></i> Guardar Usuario</button>

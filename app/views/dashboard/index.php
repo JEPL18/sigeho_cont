@@ -1,12 +1,10 @@
 <?php
-// app/views/dashboard/index.php — Panel principal migrado de dashboard.php,
-// incluyendo los KPIs, el modal del log de choques y el algoritmo SIACE.
 ?>
 <div class="row g-3 mb-4 area-no-imprimir">
     <div class="col-md-3">
         <div class="card shadow-sm border-0 h-100" style="border-left: 4px solid #0d6efd;">
             <div class="card-body">
-                <h6 class="text-muted mb-2">Estado Docente</h6>
+                <p class="text-muted mb-2">Estado Docente</p>
                 <h3 class="fw-bold mb-0"><?= $tot_prof_activos; ?> <small class="text-success fs-6"><i class="bi bi-check-circle"></i> Activos</small></h3>
                 <?php if($tot_prof_inactivos > 0): ?>
                     <small class="text-danger fw-bold"><i class="bi bi-exclamation-circle"></i> <?= $tot_prof_inactivos; ?> de Reposo/Inactivos</small>
@@ -17,7 +15,7 @@
     <div class="col-md-3">
         <div class="card shadow-sm border-0 h-100" style="border-left: 4px solid #198754;">
             <div class="card-body">
-                <h6 class="text-muted mb-2">Secciones (Matrícula)</h6>
+                <p class="text-muted mb-2">Secciones (Matrícula)</p>
                 <h3 class="fw-bold mb-0"><?= $tot_sec; ?> <small class="text-muted fs-6">Registradas</small></h3>
             </div>
         </div>
@@ -25,7 +23,7 @@
     <div class="col-md-3">
         <div class="card shadow-sm border-0 h-100" style="border-left: 4px solid #ffc107;">
             <div class="card-body">
-                <h6 class="text-muted mb-2">Disponibilidad de Aulas</h6>
+                <p class="text-muted mb-2">Disponibilidad de Aulas</p>
                 <h3 class="fw-bold mb-0"><?= $tot_aulas_operativas; ?> <small class="text-success fs-6"><i class="bi bi-door-open-fill"></i> Operativas</small></h3>
                 <?php if($tot_aulas_inoperativas > 0): ?>
                     <small class="text-warning text-dark fw-bold"><i class="bi bi-tools"></i> <?= $tot_aulas_inoperativas; ?> Mantenimiento/Clausuradas</small>
@@ -37,7 +35,7 @@
         <div class="card shadow-sm border-0 h-100 bg-danger text-white border-0">
             <div class="card-body d-flex flex-column justify-content-center">
                 <div class="d-flex justify-content-between align-items-center mb-2">
-                    <h6 class="text-white-50 mb-0">Choques Detectados</h6>
+                    <p class="text-white-50 mb-0">Choques Detectados</p>
                     <i class="bi bi-shield-fill-x fs-3 opacity-50"></i>
                 </div>
                 <div class="d-flex align-items-center justify-content-between">
@@ -57,7 +55,7 @@
             <div class="col-md-6">
                 <label class="form-label fw-bold text-dark"><i class="bi bi-search me-1"></i> Consultar Horario de la Sección:</label>
                 <select name="seccion_id" class="form-select border-secondary" required>
-                    <option value="" disabled selected>Seleccione la sección...</option>
+                    <option value="" disabled <?= !$seccion_seleccionada ? 'selected' : ''; ?>>Seleccione la sección...</option>
                     <?php foreach($secciones as $s): ?>
                         <option value="<?= $s['id']; ?>" <?= ($seccion_seleccionada == $s['id']) ? 'selected' : ''; ?>>
                             TRAYECTO <?= $s['trayecto']; ?> - TRIM. <?= $s['trimestre']; ?> | <?= $s['codigo']; ?>
@@ -67,7 +65,7 @@
             </div>
             <div class="col-md-3">
                 <label class="form-label fw-bold text-dark"><i class="bi bi-clock-fill me-1"></i> Turno:</label>
-                <select name="turno" class="form-select border-secondary" required>
+                <select name="turno" class="form-select border-secondary">
                     <option value="MATUTINO" <?= ($turno_seleccionado == 'MATUTINO') ? 'selected' : ''; ?>>Matutino</option>
                     <option value="VESPERTINO" <?= ($turno_seleccionado == 'VESPERTINO') ? 'selected' : ''; ?>>Vespertino</option>
                     <option value="NOCTURNO" <?= ($turno_seleccionado == 'NOCTURNO') ? 'selected' : ''; ?>>Nocturno</option>
@@ -85,7 +83,7 @@
 <?php if ($seccion_seleccionada && $datos_seccion): ?>
     <div class="card shadow-sm border-0 mb-5">
         <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center area-no-imprimir">
-            <h6 class="mb-0 fw-bold text-dark">Vista Previa de Impresión</h6>
+            <p class="mb-0 fw-bold text-dark">Vista Previa de Impresión</p>
             <div class="btn-group">
                 <button class="btn btn-outline-danger btn-sm" onclick="window.print()"><i class="bi bi-printer"></i> Imprimir / Guardar PDF</button>
                 <button class="btn btn-success btn-sm" onclick="exportarExcel('tablaHorario', 'Horario_<?= $datos_seccion['codigo']; ?>')"><i class="bi bi-file-earmark-excel"></i> Exportar Excel</button>
@@ -93,60 +91,20 @@
         </div>
 
         <div class="card-body overflow-auto p-4 bg-white" id="area-impresion">
+            <h4 class="d-none d-print-block" style="font-family: Arial, sans-serif; font-weight: bold;">Horario de la sección: <?= htmlspecialchars($datos_seccion['codigo']); ?></h4>
 
-            <!-- ESTILOS CSS INYECTADOS EXCLUSIVOS PARA REPLICAR SIACE -->
-            <style>
-                .tabla-siace {
-                    width: 100%;
-                    border-collapse: collapse;
-                    font-family: Arial, sans-serif;
-                }
-                .tabla-siace th, .tabla-siace td {
-                    border: 1px solid #000;
-                    text-align: center;
-                    vertical-align: middle;
-                }
-                .tabla-siace th {
-                    background-color: #fcfcfc;
-                    color: #000;
-                    font-size: 0.75rem;
-                    font-weight: bold;
-                    padding: 8px 4px;
-                }
-                .celda-hora-siace {
-                    font-size: 0.85rem;
-                    padding: 15px 5px;
-                }
-                .celda-datos-siace {
-                    padding: 10px 5px;
-                }
-                .materia-siace {
-                    color: #000080;
-                    font-weight: bold;
-                    font-size: 0.80rem;
-                    display: block;
-                    margin-bottom: 8px;
-                }
-                .texto-siace {
-                    color: #000;
-                    font-size: 0.75rem;
-                    display: block;
-                    font-weight: bold;
-                    margin-bottom: 4px;
-                }
-                .encabezado-siace {
-                    border-top: 3px solid #cc0000;
-                    padding-top: 10px;
-                    margin-bottom: 5px;
-                }
-            </style>
+            
 
             <div class="encabezado-siace">
-                <h5 style="color: #cc0000; font-weight: bold; margin: 0; font-family: Arial, sans-serif;">
+                <h4 style="color: #cc0000; font-weight: bold; margin: 0; font-family: Arial, sans-serif;">
                     TURNO: <?= htmlspecialchars($turno_seleccionado); ?>
-                </h5>
+                </h4>
             </div>
 
+            <?php if($es_admin): ?>
+                <p class="text-muted small area-no-imprimir">Borrador: arrastra un bloque a otro día u hora para moverlo. El servidor valida choques antes de guardar.</p>
+            <?php endif; ?>
+            <div id="mensaje-mover" class="alert" style="display: none;" role="alert"></div>
             <table class="tabla-siace" id="tablaHorario">
                 <tr>
                     <th style="width: 13%;">HORA</th>
@@ -158,39 +116,104 @@
                     <th style="width: 14.5%;">SABADO</th>
                 </tr>
 
-                <?php if (empty($tramos_tiempo)): ?>
+                <?php if (empty($segmentos)): ?>
                     <tr><td colspan="7" class="py-5" style="color: #666; font-size: 0.9rem;">No hay clases asignadas para esta sección en este turno.</td></tr>
                 <?php else: ?>
                     <?php
                     $dias = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado'];
-                    foreach ($tramos_tiempo as $hora_cruda => $rango_texto):
+                    foreach ($segmentos as $i => $seg):
                     ?>
-                        <tr>
-                            <td class="celda-hora-siace"><?= $rango_texto; ?></td>
+                        <tr data-inicio="<?= substr($seg['inicio'], 0, 5); ?>">
+                            <td class="celda-hora-siace"><?= $seg['texto']; ?></td>
 
                             <?php foreach ($dias as $d): ?>
-                                <?php if (isset($matriz_horario[$hora_cruda][$d])):
-                                    $clase = $matriz_horario[$hora_cruda][$d];
+                                <?php if (isset($celdas[$i][$d])):
+                                    $clase = $celdas[$i][$d]['clase'];
                                 ?>
-                                    <td class="celda-datos-siace">
+                                    <td class="celda-datos-siace<?= $es_admin ? ' bloque-arrastrable' : ''; ?>" rowspan="<?= $celdas[$i][$d]['rowspan']; ?>" data-dia="<?= $d; ?>"<?= $es_admin ? ' draggable="true" data-horario-id="' . $clase['id'] . '"' : ''; ?>>
                                         <span class="materia-siace">
                                             (<?= htmlspecialchars($datos_seccion['codigo']); ?>) - <?= htmlspecialchars($clase['materia']); ?>
                                         </span>
                                         <span class="texto-siace">Seccion: <?= htmlspecialchars($datos_seccion['codigo']); ?></span>
                                         <span class="texto-siace">
-                                            <?= htmlspecialchars($clase['titulo'] ?? 'Prof.') . ' ' . htmlspecialchars($clase['profesor']); ?>
+                                            <?= htmlspecialchars($clase['profesor']); ?>
                                         </span>
                                         <span class="texto-siace">AULA: <?= htmlspecialchars($clase['aula']); ?></span>
                                     </td>
-                                <?php else: ?>
-                                    <!-- CELDA VACÍA PERFECTA (Como en el SIACE) -->
-                                    <td></td>
+                                <?php elseif (!isset($ocupadas[$i][$d])): ?>
+                                    <td data-dia="<?= $d; ?>"></td>
                                 <?php endif; ?>
                             <?php endforeach; ?>
                         </tr>
                     <?php endforeach; ?>
                 <?php endif; ?>
             </table>
+            <?php if($es_admin): ?>
+            <script>
+            (function() {
+                var mensaje = document.getElementById('mensaje-mover');
+                var arrastrado = null;
+                function mostrar(texto, ok) {
+                    mensaje.innerHTML = texto;
+                    mensaje.className = 'alert ' + (ok ? 'alert-success' : 'alert-danger');
+                    mensaje.style.display = 'block';
+                }
+                document.querySelectorAll('.bloque-arrastrable').forEach(function(b) {
+                    b.addEventListener('dragstart', function() {
+                        arrastrado = { id: b.dataset.horarioId };
+                        b.style.opacity = '0.4';
+                    });
+                    b.addEventListener('dragend', function() {
+                        b.style.opacity = '';
+                        arrastrado = null;
+                    });
+                });
+                document.querySelectorAll('#tablaHorario td[data-dia]').forEach(function(celda) {
+                    celda.addEventListener('dragover', function(e) {
+                        if (arrastrado) {
+                            e.preventDefault();
+                            celda.style.outline = '2px dashed #8B1A1A';
+                        }
+                    });
+                    celda.addEventListener('dragleave', function() {
+                        celda.style.outline = '';
+                    });
+                    celda.addEventListener('drop', function(e) {
+                        e.preventDefault();
+                        celda.style.outline = '';
+                        if (!arrastrado) return;
+                        var fila = celda.closest('tr');
+                        var inicio = fila ? fila.dataset.inicio : '';
+                        var dia = celda.dataset.dia;
+                        if (!inicio || !dia) return;
+                        var tokenEl = document.querySelector('input[name="csrf_token"]');
+                        if (!tokenEl) {
+                            mostrar('No se encontró el token de seguridad. Recarga la página.', false);
+                            return;
+                        }
+                        var datos = new FormData();
+                        datos.append('csrf_token', tokenEl.value);
+                        datos.append('id', arrastrado.id);
+                        datos.append('dia', dia);
+                        datos.append('hora_inicio', inicio);
+                        fetch('<?= $this->url('horarios/mover'); ?>', { method: 'POST', body: datos })
+                            .then(function(r) { return r.json(); })
+                            .then(function(res) {
+                                if (res.ok) {
+                                    mostrar('Bloque movido correctamente.', true);
+                                    setTimeout(function() { location.reload(); }, 900);
+                                } else {
+                                    mostrar(res.error || 'No se pudo mover el bloque.', false);
+                                }
+                            })
+                            .catch(function() {
+                                mostrar('No se pudo mover el bloque. Revisa tu sesión e inténtalo de nuevo.', false);
+                            });
+                    });
+                });
+            })();
+            </script>
+            <?php endif; ?>
         </div>
     </div>
 
@@ -216,16 +239,16 @@
 <?php else: ?>
     <div class="alert alert-secondary text-center py-5 border-0 shadow-sm area-no-imprimir">
         <i class="bi bi-calendar3 fs-1 text-muted d-block mb-3"></i>
-        <h5 class="text-muted">Seleccione una sección y un turno en el menú superior para visualizar su horario.</h5>
+        <p class="text-muted">Seleccione una sección y un turno en el menú superior para visualizar su horario.</p>
     </div>
 <?php endif; ?>
 
 <!-- MODAL DEL LOG DE CHOQUES -->
-<div class="modal fade" id="modalLog" tabindex="-1" aria-labelledby="modalLogLabel" aria-hidden="true">
+<div class="modal fade" id="modalLog" tabindex="-1" role="dialog" aria-labelledby="modalLogLabel" aria-hidden="true">
   <div class="modal-dialog modal-xl modal-dialog-scrollable">
     <div class="modal-content border-0 shadow">
       <div class="modal-header bg-danger text-white">
-        <h5 class="modal-title fw-bold" id="modalLogLabel"><i class="bi bi-shield-lock-fill"></i> Auditoría: Log de Choques Bloqueados</h5>
+        <h4 class="modal-title fw-bold" id="modalLogLabel"><i class="bi bi-shield-lock-fill"></i> Auditoría: Log de Choques Bloqueados</h4>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body p-0">
@@ -256,9 +279,13 @@
       </div>
       <div class="modal-footer bg-light d-flex justify-content-between">
         <?php if(strtolower($_SESSION['rol']) == 'administrador'): ?>
-            <a href="<?= $this->url('dashboard', ['action' => 'clear_logs']); ?>" class="btn btn-outline-danger btn-sm fw-bold" onclick="return confirm('¿Estás seguro de borrar todo el historial de auditoría?');">
-                <i class="bi bi-trash-fill"></i> Vaciar Historial
-            </a>
+            <form method="post" action="<?= $this->url('dashboard'); ?>" class="d-inline m-0" onsubmit="return confirm('¿Estás seguro de borrar todo el historial de auditoría?');">
+                <?= csrf_field() ?>
+                <input type="hidden" name="action" value="clear_logs">
+                <button type="submit" class="btn btn-outline-danger btn-sm fw-bold">
+                    <i class="bi bi-trash-fill"></i> Vaciar Historial
+                </button>
+            </form>
         <?php else: ?>
             <div></div> <!-- Espacio vacío para asistentes -->
         <?php endif; ?>

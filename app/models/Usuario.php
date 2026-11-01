@@ -1,6 +1,4 @@
 <?php
-// app/models/Usuario.php — Consultas de la tabla `usuarios`.
-
 class Usuario {
     protected $conn;
     public function __construct($conn) { $this->conn = $conn; }
@@ -8,6 +6,15 @@ class Usuario {
     public function all() {
         $sql = "SELECT id, nombre, correo, rol, bloqueado FROM usuarios ORDER BY rol ASC, nombre ASC";
         return $this->conn->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function filtrar($rol = '') {
+        if (in_array($rol, ['administrador', 'coordinador', 'profesor', 'asistente'], true)) {
+            $stmt = $this->conn->prepare("SELECT id, nombre, correo, rol, bloqueado FROM usuarios WHERE rol = ? ORDER BY rol ASC, nombre ASC");
+            $stmt->execute([$rol]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        }
+        return $this->all();
     }
 
     public function find($id) {
@@ -39,11 +46,20 @@ class Usuario {
         return $stmt->rowCount() > 0;
     }
 
+    public function findIdPorCorreo($correo) {
+        $stmt = $this->conn->prepare("SELECT id FROM usuarios WHERE correo = ? LIMIT 1");
+        $stmt->execute([$correo]);
+        $id = $stmt->fetchColumn();
+        return $id === false ? null : $id;
+    }
+
+    public function actualizarPasswordPorId($id, $pass_hash) {
+        $stmt = $this->conn->prepare("UPDATE usuarios SET password = ? WHERE id = ?");
+        $stmt->execute([$pass_hash, $id]);
+    }
+
     public function verificarRespuestasSeguridad($correo, $r1, $r2, $r3) {
-        // NOTA: el proyecto original compara las respuestas en texto plano contra la BD.
-        // Se conserva el comportamiento tal cual (las respuestas se guardan hasheadas
-        // con password_hash al crear el usuario, por lo que esta consulta nunca
-        // coincidirá, igual que en el original).
+
         $stmt = $this->conn->prepare("SELECT id FROM usuarios WHERE correo = ? AND respuesta_seguridad_1 = ? AND respuesta_seguridad_2 = ? AND respuesta_seguridad_3 = ?");
         $stmt->execute([$correo, $r1, $r2, $r3]);
         return $stmt->rowCount() > 0;
@@ -55,10 +71,7 @@ class Usuario {
         $stmt->execute([$nombre, $correo, $rol, $pass_hash, $p1, $r1_hash, $p2, $r2_hash, $p3, $r3_hash]);
     }
 
-    /**
-     * Actualización dinámica (solo incluye password y respuestas si se enviaron),
-     * misma lógica del editar.php original.
-     */
+    
     public function update($id, $nombre, $correo, $rol, $nueva_password, $respuestas) {
         $p1 = "¿Fecha de cumpleaños?";
         $p2 = "¿Nombre del colegio donde estudiaste?";
@@ -95,15 +108,11 @@ class Usuario {
         $stmt->execute([$id]);
     }
 
-    /** Resetea intentos a 0 tras un login exitoso. */
     public function resetearIntentos($id) {
         $this->conn->query("UPDATE usuarios SET intentos = 0 WHERE id = " . (int)$id);
     }
 
-    /**
-     * Registra un intento fallido. Devuelve ['intentos' => int, 'bloqueado' => bool].
-     * (Lógica del PUNTO 17 del login original.)
-     */
+    
     public function registrarIntentoFallido($id, $intentosActuales) {
         $nuevos_intentos = $intentosActuales + 1;
         if ($nuevos_intentos >= 3) {
@@ -127,7 +136,7 @@ class Usuario {
     }
 
     public function datos2fa($id) {
-        $stmt = $this->conn->prepare("SELECT 2fa_secret, 2fa_activo FROM usuarios WHERE id = ?");
+        $stmt = $this->conn->prepare("SELECT 2fa_secret, 2fa_activo, correo FROM usuarios WHERE id = ?");
         $stmt->execute([$id]);
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }

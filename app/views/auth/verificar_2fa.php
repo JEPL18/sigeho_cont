@@ -1,6 +1,4 @@
 <?php
-// app/views/auth/verificar_2fa.php — Página completa (sin header/footer).
-// Migrada de verificar_2fa.php.
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -8,6 +6,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Verificación de 2 Pasos - SIGEHO-CONT</title>
+    <!-- Favicon -->
+    <link rel="icon" href="<?php echo $baseUrl; ?>assets/img/logo_conta.jpeg" type="image/jpeg">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <style>
@@ -58,8 +58,9 @@
         <?php endif; ?>
 
         <form action="<?= $this->url('auth/verificar2fa'); ?>" method="POST" autocomplete="off">
+    <?= csrf_field() ?>
             <div class="mb-4">
-                <input type="text" name="codigo" class="form-control codigo-input rounded-3" maxlength="6" pattern="\d{6}" title="Ingrese los 6 dígitos" required autofocus placeholder="••••••">
+                <input type="text" name="codigo" class="form-control codigo-input rounded-3" maxlength="6" pattern="\d{6}" data-bs-toggle="tooltip" data-bs-placement="top" title="Ingrese los 6 dígitos" required autofocus placeholder="••••••">
             </div>
             <div class="d-grid gap-2">
                 <button type="submit" class="btn btn-primary btn-lg rounded-3 fw-bold" style="background:#0a2a4d; border:none;">

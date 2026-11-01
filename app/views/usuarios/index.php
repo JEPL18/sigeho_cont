@@ -1,6 +1,4 @@
 <?php
-// app/views/usuarios/index.php — Cuentas de acceso.
-// Migrada de modules/usuarios/index.php.
 ?>
 <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
     <h2 class="fw-bold mb-0"><i class="bi bi-person-badge-fill text-info me-2"></i> Cuentas de Acceso</h2>
@@ -32,6 +30,23 @@
         </div>
     <?php endif; ?>
 <?php endif; ?>
+
+<form method="GET" action="<?= $this->url('usuarios'); ?>" class="row g-2 mb-3 area-no-imprimir align-items-end">
+    <div class="col-md-3">
+        <label class="form-label fw-bold small mb-1">Rol</label>
+        <select name="rol" class="form-select shadow-sm" onchange="this.form.submit()" aria-label="Filtrar por rol">
+            <option value="">Todos</option>
+            <option value="administrador" <?= (($filtro_rol ?? '') == 'administrador') ? 'selected' : ''; ?>>Administradores</option>
+            <option value="asistente" <?= (($filtro_rol ?? '') == 'asistente') ? 'selected' : ''; ?>>Asistentes</option>
+        </select>
+    </div>
+    <div class="col-md-3">
+        <a href="<?= $this->url('usuarios'); ?>" class="btn btn-outline-secondary w-100">Limpiar filtros</a>
+    </div>
+    <div class="col-md-6 text-md-end">
+        <small class="text-muted">Mostrando <b><?= count($usuarios); ?></b> registro(s)</small>
+    </div>
+</form>
 
 <div class="row mb-3 area-no-imprimir">
     <div class="col-md-5 ms-auto">
@@ -84,7 +99,7 @@
 
                                 <?php if($u['bloqueado'] == 1): ?>
                                     <!-- PUNTO 12: aria-label dinámico para el botón de desbloqueo -->
-                                    <a href="<?= $this->url('usuarios/desbloquear', ['id' => $u['id']]); ?>" class="btn btn-sm btn-outline-success" onclick="return confirm('¿Seguro que deseas restaurar el acceso a este usuario?');" title="Desbloquear Cuenta" aria-label="Desbloquear usuario <?php echo htmlspecialchars($u['nombre']); ?>"><i class="bi bi-unlock"></i></a>
+                                    <form method="POST" action="<?= $this->url('usuarios/desbloquear', ['id' => $u['id']]); ?>" class="btn btn-sm btn-outline-success" onclick="return confirm('¿Seguro que deseas restaurar el acceso a este usuario?');" title="Desbloquear Cuenta" aria-label="Desbloquear usuario <?php echo htmlspecialchars($u['nombre']); ?>" style="display:inline;"><?= csrf_field() ?><button type="submit"><i class="bi bi-unlock"></i></button></form>
                                 <?php endif; ?>
 
                                 <?php if($u['id'] != $_SESSION['usuario_id']): ?>

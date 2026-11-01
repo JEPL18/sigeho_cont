@@ -105,14 +105,16 @@ body {
     margin-top: 2px; 
 }
 
-/* Reglas especiales que se activan solo al imprimir o guardar en PDF */
+/* Reglas especiales que se activan solo al imprimir o guardar en PDF: solo salen las parrillas y tablas de horarios, nada de botones, menús, filtros, alertas ni pie de página */
 @media print {
     body { background-color: white !important; margin: 0; padding: 0; }
-    #sidebar, .top-navbar, .area-no-imprimir, .btn-group { display: none !important; }
-    #main-content { margin-left: 0 !important; width: 100% !important; padding: 0 !important; }
+    #sidebar, .top-navbar, .area-no-imprimir, .btn-group, .btn, button, footer, .alert { display: none !important; }
+    #main-content { margin-left: 0 !important; width: 100% !important; padding: 0 !important; height: auto !important; overflow: visible !important; }
     .card { border: none !important; box-shadow: none !important; margin: 0 !important; }
     .card-header { display: none !important; }
-    .card-body { padding: 0 !important; }
+    .card-body { padding: 0 !important; overflow: visible !important; }
+    #contenido { height: auto !important; overflow: visible !important; padding: 0 !important; }
+    thead th, .tabla-siace th, .tabla-siace td, .tabla-word th, .header-rojo, .header-oscuro, .columna-hora { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
     /* Esta regla elimina la fecha y el enlace localhost del navegador */
     @page { size: landscape; margin: 0; } 
 }

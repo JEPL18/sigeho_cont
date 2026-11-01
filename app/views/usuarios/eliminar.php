@@ -1,6 +1,4 @@
 <?php
-// app/views/usuarios/eliminar.php — Confirmación de eliminación con autenticación estricta.
-// Migrada de modules/usuarios/eliminar.php.
 ?>
 <div class="row justify-content-center mt-5">
     <div class="col-md-6">
@@ -22,6 +20,7 @@
                 <?php endif; ?>
 
                 <form action="<?= $this->url('usuarios/eliminar', ['id' => $id_eliminar]); ?>" method="POST">
+    <?= csrf_field() ?>
                     <div class="mb-3 text-start">
                         <label class="form-label fw-bold"><i class="bi bi-key-fill"></i> Contraseña de Administrador</label>
                         <input type="password" name="password_admin" class="form-control text-center" placeholder="Tu contraseña..." required autofocus>
